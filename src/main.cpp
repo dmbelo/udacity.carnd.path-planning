@@ -8,6 +8,7 @@
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
+#include "spline.h"
 
 using namespace std;
 
@@ -38,6 +39,7 @@ double distance(double x1, double y1, double x2, double y2)
 {
 	return sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
 }
+
 int ClosestWaypoint(double x, double y, vector<double> maps_x, vector<double> maps_y)
 {
 
@@ -221,7 +223,8 @@ int main() {
           	double car_s = j[1]["s"];
           	double car_d = j[1]["d"];
           	double car_yaw = j[1]["yaw"];
-          	double car_speed = j[1]["speed"];
+			double car_speed = j[1]["speed"];
+			car_speed = car_speed * 1.6 / 3.6; // Convert to m/s
 
           	// Previous path data given to the Planner
           	auto previous_path_x = j[1]["previous_path_x"];
@@ -236,10 +239,114 @@ int main() {
           	json msgJson;
 
           	vector<double> next_x_vals;
-          	vector<double> next_y_vals;
+			vector<double> next_y_vals;
+			
+			// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
+
+			double max_accel = 9;
+			double max_jerk = 50;
+			double dt = 0.02;
+			double car_speed_target = 50 * 1.6 / 3.6; // m/s
+			double car_speed_derated = car_speed;
+			double ds;
+			double new_dcar = 6;
+			
+			vector<double> new_xycar_0  = getXY(car_s,      new_dcar, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+			vector<double> new_xycar_25 = getXY(car_s + 25, new_dcar, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+			vector<double> new_xycar_50 = getXY(car_s + 50, new_dcar, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+
+			vector<double> s_knots = {car_s, car_s + 25.0, car_s + 50.0};
+			vector<double> x_knots = {new_xycar_0[0], new_xycar_25[0], new_xycar_50[0]};
+			vector<double> y_knots = {new_xycar_0[1], new_xycar_25[1], new_xycar_50[1]};
+
+			tk::spline s_x;
+			tk::spline s_y;
+			s_x.set_boundary(s_x.first_deriv, 0.0, s_x.first_deriv, 0.0);
+			s_y.set_boundary(s_y.first_deriv, 0.0, s_y.first_deriv, 0.0);
+			s_x.set_points(s_knots, x_knots); // currently it is required that X is already sorted
+			s_y.set_points(s_knots, y_knots);
+
+			cout << "Current vehicle position" << endl;
+			cout << "s, d, x, y" << endl;
+			cout << car_s << ", " << car_d << ", " << car_x << ", " << car_y << endl;
+
+			cout << "Beginning path generation" << endl;
+
+			for(int i = 0; i < 50; i++)
+			{
+
+				// Limit speed based on accel and jerk 
+				// if ((car_speed_target - car_speed_derated) / dt > max_accel) 
+				// {
+				// 	car_speed_derated = car_speed + max_accel * dt;
+				// } else {
+				// 	car_speed_derated = car_speed_target;
+				// }
+				
+				car_speed_derated = car_speed_target;
+				ds = car_speed_derated * dt;
+				
+				double new_scar = car_s + ds * (i + 1);
+
+				// double new_xcar = car_x + (ds * i) * cos(deg2rad(car_yaw));
+				// double new_ycar = car_y + (ds * i) * sin(deg2rad(car_yaw));
+
+				// vector<double> new_xycar = getXY(new_scar, new_dcar, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+				// double new_xcar = new_xycar[0];
+				// double new_ycar = new_xycar[1];
+
+				double new_xcar = s_x(new_scar);
+				double new_ycar = s_y(new_scar);
+
+				next_x_vals.push_back(new_xcar);
+				next_y_vals.push_back(new_ycar);
+
+				cout << new_xcar << ", " << new_ycar << ", " << endl;
+
+			}
+
+			cout << "End of path generation" << endl;
 
 
-          	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
+			// vector<double> next_x_vals;
+			// vector<double> next_y_vals;
+  
+			// double pos_x;
+			// double pos_y;
+			// double angle;
+			// int path_size = previous_path_x.size();
+  
+			// for(int i = 0; i < path_size; i++)
+			// {
+			// 	next_x_vals.push_back(previous_path_x[i]);
+			// 	next_y_vals.push_back(previous_path_y[i]);
+			// }
+  
+			// if(path_size == 0)
+			// {
+			// 	pos_x = car_x;
+			// 	pos_y = car_y;
+			// 	angle = deg2rad(car_yaw);
+			// }
+			// else
+			// {
+			// 	pos_x = previous_path_x[path_size-1];
+			// 	pos_y = previous_path_y[path_size-1];
+  
+			// 	double pos_x2 = previous_path_x[path_size-2];
+			// 	double pos_y2 = previous_path_y[path_size-2];
+			// 	angle = atan2(pos_y-pos_y2,pos_x-pos_x2);
+			// }
+  
+			// double dist_inc = 0.5;
+			// for(int i = 0; i < 50-path_size; i++)
+			// {    
+			// 	next_x_vals.push_back(pos_x+(dist_inc)*cos(angle+(i+1)*(pi()/100)));
+			// 	next_y_vals.push_back(pos_y+(dist_inc)*sin(angle+(i+1)*(pi()/100)));
+			// 	pos_x += (dist_inc)*cos(angle+(i+1)*(pi()/100));
+			// 	pos_y += (dist_inc)*sin(angle+(i+1)*(pi()/100));
+			// }
+
           	msgJson["next_x"] = next_x_vals;
           	msgJson["next_y"] = next_y_vals;
 
@@ -277,7 +384,7 @@ int main() {
 
   h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code,
                          char *message, size_t length) {
-    ws.close();
+	ws.close();
     std::cout << "Disconnected" << std::endl;
   });
 
