@@ -215,7 +215,9 @@ int main() {
         string event = j[0].get<string>();
         
         if (event == "telemetry") {
-          // j[1] is the data JSON object
+		  // j[1] is the data JSON object
+		  
+			cout << "****************************************" << endl;
           
         	// Main car's localization Data
           	double car_x = j[1]["x"];
@@ -250,21 +252,6 @@ int main() {
 			double car_speed_derated = car_speed;
 			double ds;
 			double new_dcar = 6;
-			
-			vector<double> new_xycar_0  = getXY(car_s,      new_dcar, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-			vector<double> new_xycar_25 = getXY(car_s + 25, new_dcar, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-			vector<double> new_xycar_50 = getXY(car_s + 50, new_dcar, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-
-			vector<double> s_knots = {car_s, car_s + 25.0, car_s + 50.0};
-			vector<double> x_knots = {new_xycar_0[0], new_xycar_25[0], new_xycar_50[0]};
-			vector<double> y_knots = {new_xycar_0[1], new_xycar_25[1], new_xycar_50[1]};
-
-			tk::spline s_x;
-			tk::spline s_y;
-			s_x.set_boundary(s_x.first_deriv, 0.0, s_x.first_deriv, 0.0);
-			s_y.set_boundary(s_y.first_deriv, 0.0, s_y.first_deriv, 0.0);
-			s_x.set_points(s_knots, x_knots); // currently it is required that X is already sorted
-			s_y.set_points(s_knots, y_knots);
 
 			cout << "Current vehicle position" << endl;
 			cout << "s, d, x, y" << endl;
@@ -272,7 +259,44 @@ int main() {
 
 			cout << "Beginning path generation" << endl;
 
-			for(int i = 0; i < 50; i++)
+			unsigned int N = 50;
+			unsigned int N_0 = previous_path_x.size();
+
+			if (N_0 == 0) {
+				cout << "No unused trajector nodes found" << endl;
+				end_path_s = car_s;
+			} else {
+				// Copy unused tranjectory nodes from previous iteration into this one
+				cout << N_0 << " unused trajector nodes found. Copying over..." << endl;
+				for (unsigned int i = 0; i < N_0; i++) {
+					cout << previous_path_x[i] << ", " << previous_path_y[i] << endl;
+					next_x_vals.push_back(previous_path_x[i]);
+					next_y_vals.push_back(previous_path_y[i]);
+				}
+				cout << "Done" << endl;
+				// cout << "Ending s: " << end_path_s << endl;
+				// cout << "Pred x, y at ending s: " << s_x(end_path_s) << ", " << s_y(end_path_s) << endl;
+			}
+
+			vector<double> new_xycar_0  = getXY(end_path_s,      new_dcar, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+			vector<double> new_xycar_25 = getXY(end_path_s + 25, new_dcar, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+			vector<double> new_xycar_50 = getXY(end_path_s + 50, new_dcar, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+
+			vector<double> s_knots = {end_path_s, end_path_s + 25.0, end_path_s + 50.0};
+			vector<double> x_knots = {new_xycar_0[0], new_xycar_25[0], new_xycar_50[0]};
+			vector<double> y_knots = {new_xycar_0[1], new_xycar_25[1], new_xycar_50[1]};
+
+			tk::spline s_x;
+			tk::spline s_y;
+			// s_x.set_boundary(s_x.first_deriv, 0.0, s_x.first_deriv, 0.0);
+			// s_y.set_boundary(s_y.first_deriv, 0.0, s_y.first_deriv, 0.0);
+			s_x.set_points(s_knots, x_knots); // currently it is required that X is already sorted
+			s_y.set_points(s_knots, y_knots);
+
+			car_speed_derated = car_speed_target;
+			ds = car_speed_derated * dt;
+
+			for(unsigned int i = 0; i < N - N_0; i++)
 			{
 
 				// Limit speed based on accel and jerk 
@@ -283,10 +307,7 @@ int main() {
 				// 	car_speed_derated = car_speed_target;
 				// }
 				
-				car_speed_derated = car_speed_target;
-				ds = car_speed_derated * dt;
-				
-				double new_scar = car_s + ds * (i + 1);
+				double new_scar = end_path_s + ds * (i + 1);
 
 				// double new_xcar = car_x + (ds * i) * cos(deg2rad(car_yaw));
 				// double new_ycar = car_y + (ds * i) * sin(deg2rad(car_yaw));
@@ -295,13 +316,15 @@ int main() {
 				// double new_xcar = new_xycar[0];
 				// double new_ycar = new_xycar[1];
 
+				// vector<double> new_xycar  = getXY(new_scar, 0, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+
 				double new_xcar = s_x(new_scar);
 				double new_ycar = s_y(new_scar);
 
 				next_x_vals.push_back(new_xcar);
 				next_y_vals.push_back(new_ycar);
 
-				cout << new_xcar << ", " << new_ycar << ", " << endl;
+				cout << i << ", " << new_scar << ", " << new_xcar << ", " << new_ycar << ", " << endl;
 
 			}
 
