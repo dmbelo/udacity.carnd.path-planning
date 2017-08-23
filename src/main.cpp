@@ -232,6 +232,9 @@ int main()
 					// Unit convert
 					v_car = v_car * 1.6 / 3.6; // m/s
 
+					double v_car_nominal = 50 * 1.6 / 3.6;					
+					double v_car_target = v_car_nominal;
+
 					// Previous path data given to the Planner
 					auto x_trajectory_unused = j[1]["previous_path_x"];
 					auto y_trajectory_unused = j[1]["previous_path_y"];
@@ -241,6 +244,56 @@ int main()
 
 					// Sensor Fusion Data, a list of all other cars on the same side of the road.
 					auto sensor_fusion = j[1]["sensor_fusion"];
+
+					double s_follow_min = 30;
+					double s_follow = 1e6;
+
+					int n_vehicles = sensor_fusion.size();
+
+					for (int i = 0; i < n_vehicles; i++) {
+						
+						double id  = sensor_fusion[i][0]; // car's unique ID
+						double xi  = sensor_fusion[i][1]; // car's x position in map coordinates
+						double yi  = sensor_fusion[i][2]; // car's y position in map coordinates
+						double vxi = sensor_fusion[i][3]; // car's x velocity in m/s
+						double vyi = sensor_fusion[i][4]; // car's y velocity in m/s
+						double si  = sensor_fusion[i][5]; // car's s position in frenet coordinates,
+						double di  = sensor_fusion[i][6]; // car's d position in frenet coordinates.
+						double vi  = sqrt(vxi*vxi + vyi*vyi);
+					
+
+						// TODO 
+						// Implement the following with a nice hypertangent function or 
+						// something similiar to have a smooth control actuation
+						// Find closest vehicle in front of us
+
+						// TODO Implement the ability to limit the trajectory based on accelation and jerk
+
+						// TODO Start the path from scratch if you have an abrupt change in speed (
+						// like a vehicle crossing infront of you)
+						 
+						// Nominal vs. target speed and nominal vs. target lane? 
+
+
+						if ((si > s_car) & (di > 4) & (di < 8)) { // There's a car in front of us
+							cout << "There's a car " << (si - s_car) << " in front of us" << endl;
+							if ((si - s_car) < s_follow) {
+								s_follow  = si - s_car;
+
+								if ((s_follow < s_follow_min) & (vi < v_car_target)) {
+									cout << "s_follow, vi, vxi , vyi: " << s_follow << ", " << vi << ", " << vxi << ", " << vyi << endl;
+									v_car_target = vi * 0.95;
+								} else {
+									v_car_target = v_car_nominal;
+								}
+							}
+						}
+
+
+				
+
+						
+					}
 
 					json msgJson;
 
@@ -323,7 +376,6 @@ int main()
 					double yi = 0;
 					double dt = 0.02;
 
-					double v_car_target = 50 * 1.6 / 3.6;
 					double ds = v_car_target * dt;
 
 					for (int i = 0; i < 51 - n_trajectory_unused; i++)
