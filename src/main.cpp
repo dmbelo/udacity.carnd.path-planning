@@ -181,7 +181,7 @@ int main() {
   string line;
   while (getline(in_map_, line)) {
   	istringstream iss(line);
-  	double x;
+	double x;
   	double y;
   	float s;
   	float d_x;
@@ -220,115 +220,203 @@ int main() {
 			cout << "****************************************" << endl;
           
         	// Main car's localization Data
-          	double car_x = j[1]["x"];
-          	double car_y = j[1]["y"];
-          	double car_s = j[1]["s"];
-          	double car_d = j[1]["d"];
-          	double car_yaw = j[1]["yaw"];
-			double car_speed = j[1]["speed"];
-			car_speed = car_speed * 1.6 / 3.6; // Convert to m/s
+          	double x_car     = j[1]["x"];
+          	double y_car     = j[1]["y"];
+          	double s_car     = j[1]["s"];
+          	double d_car     = j[1]["d"];
+          	double a_yaw_car = j[1]["yaw"]; // rad?
+			double v_car     = j[1]["speed"]; // mph
+		
+			// Unit convert
+			v_car = v_car * 1.6 / 3.6; // m/s
 
           	// Previous path data given to the Planner
-          	auto previous_path_x = j[1]["previous_path_x"];
-          	auto previous_path_y = j[1]["previous_path_y"];
+          	auto x_trajectory_unused = j[1]["previous_path_x"];
+          	auto y_trajectory_unused = j[1]["previous_path_y"];
           	// Previous path's end s and d values 
-          	double end_path_s = j[1]["end_path_s"];
-          	double end_path_d = j[1]["end_path_d"];
+          	double s_end_trajectory_unused = j[1]["end_path_s"];
+          	double d_end_trajectory_unused = j[1]["end_path_d"];
 
           	// Sensor Fusion Data, a list of all other cars on the same side of the road.
           	auto sensor_fusion = j[1]["sensor_fusion"];
 
-          	json msgJson;
+			json msgJson;
+			
+			// Spline object for interpolation
+			tk::spline s;
 
-          	vector<double> next_x_vals;
-			vector<double> next_y_vals;
+			// trajectory vector to be generated
+          	vector<double> x_trajectory;
+			vector<double> y_trajectory;
+
+			// spline nodes
+			vector<double> x_spline; 
+			vector<double> y_spline;
+
+			// initial spline vehicle position & orientation
+			double x_, y_, x0, y0, a0, s0;
+
+			int n_trajectory_unused = x_trajectory_unused.size();
+
+			if (n_trajectory_unused > 0) {
+
+				x_ = x_trajectory_unused[n_trajectory_unused-2];
+				y_ = y_trajectory_unused[n_trajectory_unused-2];
+				x0 = x_trajectory_unused[n_trajectory_unused-1];
+				y0 = y_trajectory_unused[n_trajectory_unused-1];
+				s0 = s_end_trajectory_unused;
+				a0 = atan2(y0 - y_, x0 - x_);
+
+			} else {
+		
+				x_ = x_car - cos(a_yaw_car);
+				y_ = y_car - sin(a_yaw_car);
+				x0 = x_car;
+				y0 = y_car;
+				s0 = s_car;
+				a0 = a_yaw_car;
+
+			}
+
+			// Add two points as the beginning of the spline in order to set 
+			// a smooth boundary slope for the spline
+			x_spline.push_back(x_);
+			y_spline.push_back(y_);
+			x_spline.push_back(x0);
+			y_spline.push_back(y0);
+
+			vector<double> xy_car_30 = getXY(s0 + 30, 6, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+			vector<double> xy_car_60 = getXY(s0 + 60, 6, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+			vector<double> xy_car_90 = getXY(s0 + 90, 6, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+
+			x_spline.push_back(xy_car_30[0]);
+			y_spline.push_back(xy_car_30[1]);
+			x_spline.push_back(xy_car_60[0]);
+			y_spline.push_back(xy_car_60[1]);
+			x_spline.push_back(xy_car_90[0]);
+			y_spline.push_back(xy_car_90[1]);
+
+			// Convert x,y_spline from world to vehicle reference frame
+			for (int i = 0; i < x_spline.size(); i++) {
+
+				double dx = x_spline[i] - x0;
+				double dy = y_spline[i] - y0;
+				x_spline[i] = dx * cos(a0) + dy * sin(a0);
+				y_spline[i] = -dx * sin(a0) + dy * cos(a0);
+
+			}
+
+			s.set_points(x_spline, y_spline);
+
+			// Copy over unused trajectory to new generated one
+			for (int i = 0; i < n_trajectory_unused; i++) {
+
+				x_trajectory[i] = x_trajectory_unused[i];
+				y_trajectory[i] = y_trajectory_unused[i];
+
+			}
+
+			double xi = 0;
+			double yi = 0;
+			double ds = 0.02;
+
+			for (int i = 0; i < 51 - n_trajectory_unused; i++) {
+
+				xi += ds;
+				yi = s(xi);
+				
+				// Convert from vehicle to world reference frame and append
+				x_trajectory.push_back(xi * cos(a0) - yi * sin(a0) + x0);
+				y_trajectory.push_back(xi * sin(a0) + yi * cos(a0) + y0);
+
+			}
 			
 			// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
 
-			double max_accel = 9;
-			double max_jerk = 50;
-			double dt = 0.02;
-			double car_speed_target = 50 * 1.6 / 3.6; // m/s
-			double car_speed_derated = car_speed;
-			double ds;
-			double new_dcar = 6;
+			// double max_accel = 9;
+			// double max_jerk = 50;
+			// double dt = 0.02;
+			// double car_speed_target = 50 * 1.6 / 3.6; // m/s
+			// double car_speed_derated = car_speed;
+			// double ds;
+			// double new_dcar = 6;
 
-			cout << "Current vehicle position" << endl;
-			cout << "s, d, x, y" << endl;
-			cout << car_s << ", " << car_d << ", " << car_x << ", " << car_y << endl;
+			// cout << "Current vehicle position" << endl;
+			// cout << "s, d, x, y" << endl;
+			// cout << car_s << ", " << car_d << ", " << car_x << ", " << car_y << endl;
 
-			cout << "Beginning path generation" << endl;
+			// cout << "Beginning path generation" << endl;
 
-			unsigned int N = 50;
-			unsigned int N_0 = previous_path_x.size();
+			// unsigned int N = 50;
+			// unsigned int N_0 = previous_path_x.size();
 
-			if (N_0 == 0) {
-				cout << "No unused trajector nodes found" << endl;
-				end_path_s = car_s;
-			} else {
-				// Copy unused tranjectory nodes from previous iteration into this one
-				cout << N_0 << " unused trajector nodes found. Copying over..." << endl;
-				for (unsigned int i = 0; i < N_0; i++) {
-					cout << previous_path_x[i] << ", " << previous_path_y[i] << endl;
-					next_x_vals.push_back(previous_path_x[i]);
-					next_y_vals.push_back(previous_path_y[i]);
-				}
-				cout << "Done" << endl;
-				// cout << "Ending s: " << end_path_s << endl;
-				// cout << "Pred x, y at ending s: " << s_x(end_path_s) << ", " << s_y(end_path_s) << endl;
-			}
+			// if (N_0 == 0) {
+			// 	cout << "No unused trajector nodes found" << endl;
+			// 	end_path_s = car_s;
+			// } else {
+			// 	// Copy unused tranjectory nodes from previous iteration into this one
+			// 	cout << N_0 << " unused trajector nodes found. Copying over..." << endl;
+			// 	for (unsigned int i = 0; i < N_0; i++) {
+			// 		cout << previous_path_x[i] << ", " << previous_path_y[i] << endl;
+			// 		next_x_vals.push_back(previous_path_x[i]);
+			// 		next_y_vals.push_back(previous_path_y[i]);
+			// 	}
+			// 	cout << "Done" << endl;
+			// 	// cout << "Ending s: " << end_path_s << endl;
+			// 	// cout << "Pred x, y at ending s: " << s_x(end_path_s) << ", " << s_y(end_path_s) << endl;
+			// }
 
-			vector<double> new_xycar_0  = getXY(end_path_s,      new_dcar, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-			vector<double> new_xycar_25 = getXY(end_path_s + 25, new_dcar, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-			vector<double> new_xycar_50 = getXY(end_path_s + 50, new_dcar, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+			// vector<double> new_xycar_0  = getXY(end_path_s,      end_path_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+			// vector<double> new_xycar_25 = getXY(end_path_s + 25, (new_dcar-end_path_d)/2, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+			// vector<double> new_xycar_50 = getXY(end_path_s + 50, new_dcar, map_waypoints_s, map_waypoints_x, map_waypoints_y);
 
-			vector<double> s_knots = {end_path_s, end_path_s + 25.0, end_path_s + 50.0};
-			vector<double> x_knots = {new_xycar_0[0], new_xycar_25[0], new_xycar_50[0]};
-			vector<double> y_knots = {new_xycar_0[1], new_xycar_25[1], new_xycar_50[1]};
+			// vector<double> s_knots = {end_path_s, end_path_s + 25.0, end_path_s + 50.0};
+			// vector<double> x_knots = {new_xycar_0[0], new_xycar_25[0], new_xycar_50[0]};
+			// vector<double> y_knots = {new_xycar_0[1], new_xycar_25[1], new_xycar_50[1]};
 
-			tk::spline s_x;
-			tk::spline s_y;
-			// s_x.set_boundary(s_x.first_deriv, 0.0, s_x.first_deriv, 0.0);
-			// s_y.set_boundary(s_y.first_deriv, 0.0, s_y.first_deriv, 0.0);
-			s_x.set_points(s_knots, x_knots); // currently it is required that X is already sorted
-			s_y.set_points(s_knots, y_knots);
+			// tk::spline s_x;
+			// tk::spline s_y;
+			// // s_x.set_boundary(s_x.first_deriv, 0.0, s_x.first_deriv, 0.0);
+			// // s_y.set_boundary(s_y.first_deriv, 0.0, s_y.first_deriv, 0.0);
+			// s_x.set_points(s_knots, x_knots); // currently it is required that X is already sorted
+			// s_y.set_points(s_knots, y_knots);
 
-			car_speed_derated = car_speed_target;
-			ds = car_speed_derated * dt;
+			// car_speed_derated = car_speed_target;
+			// ds = car_speed_derated * dt;
 
-			for(unsigned int i = 0; i < N - N_0; i++)
-			{
+			// for(unsigned int i = 0; i < N - N_0; i++)
+			// {
 
-				// Limit speed based on accel and jerk 
-				// if ((car_speed_target - car_speed_derated) / dt > max_accel) 
-				// {
-				// 	car_speed_derated = car_speed + max_accel * dt;
-				// } else {
-				// 	car_speed_derated = car_speed_target;
-				// }
+			// 	// Limit speed based on accel and jerk 
+			// 	// if ((car_speed_target - car_speed_derated) / dt > max_accel) 
+			// 	// {
+			// 	// 	car_speed_derated = car_speed + max_accel * dt;
+			// 	// } else {
+			// 	// 	car_speed_derated = car_speed_target;
+			// 	// }
 				
-				double new_scar = end_path_s + ds * (i + 1);
+			// 	double new_scar = end_path_s + ds * (i + 1);
 
-				// double new_xcar = car_x + (ds * i) * cos(deg2rad(car_yaw));
-				// double new_ycar = car_y + (ds * i) * sin(deg2rad(car_yaw));
+			// 	// double new_xcar = car_x + (ds * i) * cos(deg2rad(car_yaw));
+			// 	// double new_ycar = car_y + (ds * i) * sin(deg2rad(car_yaw));
 
-				// vector<double> new_xycar = getXY(new_scar, new_dcar, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-				// double new_xcar = new_xycar[0];
-				// double new_ycar = new_xycar[1];
+			// 	// vector<double> new_xycar = getXY(new_scar, new_dcar, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+			// 	// double new_xcar = new_xycar[0];
+			// 	// double new_ycar = new_xycar[1];
 
-				// vector<double> new_xycar  = getXY(new_scar, 0, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+			// 	// vector<double> new_xycar  = getXY(new_scar, 0, map_waypoints_s, map_waypoints_x, map_waypoints_y);
 
-				double new_xcar = s_x(new_scar);
-				double new_ycar = s_y(new_scar);
+			// 	double new_xcar = s_x(new_scar);
+			// 	double new_ycar = s_y(new_scar);
 
-				next_x_vals.push_back(new_xcar);
-				next_y_vals.push_back(new_ycar);
+			// 	next_x_vals.push_back(new_xcar);
+			// 	next_y_vals.push_back(new_ycar);
 
-				cout << i << ", " << new_scar << ", " << new_xcar << ", " << new_ycar << ", " << endl;
+			// 	cout << i << ", " << new_scar << ", " << new_xcar << ", " << new_ycar << ", " << endl;
 
-			}
+			// }
 
-			cout << "End of path generation" << endl;
+			// cout << "End of path generation" << endl;
 
 
 			// vector<double> next_x_vals;
@@ -370,8 +458,8 @@ int main() {
 			// 	pos_y += (dist_inc)*sin(angle+(i+1)*(pi()/100));
 			// }
 
-          	msgJson["next_x"] = next_x_vals;
-          	msgJson["next_y"] = next_y_vals;
+          	msgJson["next_x"] = x_trajectory;
+          	msgJson["next_y"] = y_trajectory;
 
           	auto msg = "42[\"control\","+ msgJson.dump()+"]";
 
