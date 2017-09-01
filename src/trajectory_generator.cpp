@@ -9,11 +9,11 @@ TrajectoryGenerator::TrajectoryGenerator(vector<double> map_x, vector<double> ma
 
 TrajectoryGenerator::~TrajectoryGenerator(){}
 
-void TrajectoryGenerator::SetInitialPose(double x, double y, double theta0)
+void TrajectoryGenerator::SetInitialPose(double x, double y, double theta)
 {
     this->x0 = x;
     this->y0 = y;
-    this->theta0 = theta0;
+    this->theta0 = theta;
 }
 
 void TrajectoryGenerator::SetTargetSpeed(double target_speed)
@@ -42,8 +42,6 @@ void TrajectoryGenerator::Generate(double distance, vector<double> &x_trajectory
     double x1 = x0 + s_horizon * cos(theta0);
     double y1 = y0 + s_horizon * sin(theta0);
     vector<double> sd_car = getFrenet(x1, y1, theta0, map_x, map_y);
-
-   
 
     // vector<double> xy_car_3 = getXY(sd_car[0],     4 * (target_lane - 1) + 2, map_s, map_x, map_y);
     // vector<double> xy_car_4 = getXY(sd_car[0]+ 10, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
