@@ -16,10 +16,11 @@ class TrajectoryGenerator
 
         ~TrajectoryGenerator();
 
+        void SetHorizonDistance(double x_horizon);
         void SetInitialPose(double x, double y, double theta);
         void SetTargetSpeed(double target_speed);
         void SetTargetLane(int target_lane);
-        void Generate(double distance, vector<double> &x_trajectory, vector<double> &y_trajectory);
+        void Generate(vector<double> &x_trajectory, vector<double> &y_trajectory);
         void Print();
 
     private:
@@ -29,8 +30,9 @@ class TrajectoryGenerator
         vector<double> map_s;
         double target_speed;
         int target_lane;
-        double x0;
-        double y0;
+        double x_horizon;       // Trajectory horizon distance in vehicle csys
+        double x0;             // Current vehicle x in world csys
+        double y0;             // Current vehicle y in world csys
         double theta0;
 
 };

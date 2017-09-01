@@ -9,6 +9,11 @@ TrajectoryGenerator::TrajectoryGenerator(vector<double> map_x, vector<double> ma
 
 TrajectoryGenerator::~TrajectoryGenerator(){}
 
+void TrajectoryGenerator::SetHorizonDistance(double x_horizon)
+{
+    this->x_horizon = x_horizon;
+}
+
 void TrajectoryGenerator::SetInitialPose(double x, double y, double theta)
 {
     this->x0 = x;
@@ -32,33 +37,47 @@ void TrajectoryGenerator::Print()
     cout << "Target Lan: " << target_lane << endl;
 }
 
-void TrajectoryGenerator::Generate(double distance, vector<double> &x_trajectory, vector<double> &y_trajectory)
+void TrajectoryGenerator::Generate(vector<double> &x_trajectory, vector<double> &y_trajectory)
 {
 
     vector<double> x_spline;
     vector<double> y_spline;
 
-    double s_horizon = 30;
-    double x1 = x0 + s_horizon * cos(theta0);
-    double y1 = y0 + s_horizon * sin(theta0);
-    vector<double> sd_car = getFrenet(x1, y1, theta0, map_x, map_y);
+    int n_trajectory = x_trajectory.size();
 
-    // vector<double> xy_car_3 = getXY(sd_car[0],     4 * (target_lane - 1) + 2, map_s, map_x, map_y);
-    // vector<double> xy_car_4 = getXY(sd_car[0]+ 10, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
-    // vector<double> xy_car_5 = getXY(sd_car[0]+ 20, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+    // Find the coordinates for the start of the spline
+    double x_start, y_start, theta_start;
+    if (n_trajectory > 0)
+    {
+        double x_   = x_trajectory[n_trajectory - 2];
+        double y_   = y_trajectory[n_trajectory - 2];
+        x_start     = x_trajectory[n_trajectory - 1];
+        y_start     = y_trajectory[n_trajectory - 1];
+        theta_start = atan2(y_start - y_, x_start - x_); 
+    }
+    else
+    {
+        x_start     = this->x0;
+        y_start     = this->y0;
+        theta_start = this->theta0;
+    }
 
-    vector<double> xy_car_3 = getXY(sd_car[0],     0, map_s, map_x, map_y);
-    vector<double> xy_car_4 = getXY(sd_car[0]+ 15, 0, map_s, map_x, map_y);
-    vector<double> xy_car_5 = getXY(sd_car[0]+ 30, 0, map_s, map_x, map_y);
+    // Calculate the end coordinates of the spline from the vehicle's current position
+    double x_end = this->x0 + this->x_horizon * cos(this->theta0);
+    double y_end = this->y0 + this->x_horizon * sin(this->theta0);
+    vector<double> sd0 = getFrenet(this->x0, this->y0, this->theta0, this->map_x, this->map_y);
 
-    cout << xy_car_3[0] << ", " << xy_car_3[1] << endl;
-    cout << xy_car_4[0] << ", " << xy_car_4[1] << endl;
-    cout << xy_car_5[0] << ", " << xy_car_5[1] << endl;
+    // Calculate the spline knots from the desired start of the spline
+    vector<double> xy_car_1 = {x_start - 0.01 * cos(theta_start), y_start - 0.01 * sin(theta_start)};
+    vector<double> xy_car_2 = {x_start, y_start};
+    vector<double> xy_car_3 = getXY(sd0[0],     4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+    vector<double> xy_car_4 = getXY(sd0[0]+ 10, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+    vector<double> xy_car_5 = getXY(sd0[0]+ 20, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
 
-    x_spline.push_back(x0 - 0.01 * cos(theta0));
-    y_spline.push_back(y0 - 0.01 * sin(theta0));
-    x_spline.push_back(x0);
-    y_spline.push_back(y0);
+    x_spline.push_back(xy_car_1[0]);
+    y_spline.push_back(xy_car_1[1]);
+    x_spline.push_back(xy_car_2[0]);
+    y_spline.push_back(xy_car_2[1]);
     x_spline.push_back(xy_car_3[0]);
     y_spline.push_back(xy_car_3[1]);
     x_spline.push_back(xy_car_4[0]);
@@ -69,10 +88,10 @@ void TrajectoryGenerator::Generate(double distance, vector<double> &x_trajectory
     // Convert x,y_spline from world to vehicle reference frame
     for (int i = 0; i < x_spline.size(); i++)
     {
-        double dx = x_spline[i] - x0;
-        double dy = y_spline[i] - y0;
-        x_spline[i] = dx * cos(theta0) + dy * sin(theta0);
-        y_spline[i] = -dx * sin(theta0) + dy * cos(theta0);
+        double dx = x_spline[i] - x_start;
+        double dy = y_spline[i] - y_start;
+        x_spline[i] = dx * cos(theta_start) + dy * sin(theta_start);
+        y_spline[i] = -dx * sin(theta_start) + dy * cos(theta_start);
     }
 
     tk::spline s; // Spline object for interpolation
@@ -81,16 +100,26 @@ void TrajectoryGenerator::Generate(double distance, vector<double> &x_trajectory
     double xi = 0;
     double yi = 0;
     double dt = 0.02;
-    double ds = target_speed * dt;
+    double dx = target_speed * dt;
 
-    for (int i = 0; i < 101; i++)
+    x_start = 1072.19;
+    int n_knots = (this->x_horizon - (x_start-this->x0)) / dx;
+
+    cout << "x_horizon = " << this->x_horizon << endl;
+    cout << "x_start = " << x_start << endl;
+    cout << "x0 = " << this->x0 << endl;
+    cout << "n_knots = " << n_knots << endl;
+
+    for (int i = 0; i < n_knots; i++)
     {
-        xi += ds;
+        // Calculate new x position in car csys
+        xi += dx;
+        cout << xi << endl;
         yi = s(xi);
 
         // Convert from vehicle to world reference frame and append
-        x_trajectory.push_back(xi * cos(theta0) - yi * sin(theta0) + x0);
-        y_trajectory.push_back(xi * sin(theta0) + yi * cos(theta0) + y0);
+        x_trajectory.push_back(xi * cos(theta_start) - yi * sin(theta_start) + x_start);
+        y_trajectory.push_back(xi * sin(theta_start) + yi * cos(theta_start) + y_start);
     }
 
 }

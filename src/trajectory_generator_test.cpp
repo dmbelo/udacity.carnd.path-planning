@@ -38,6 +38,7 @@ int main()
 
     TrajectoryGenerator traj(map_x, map_y, map_s);
 
+    traj.SetHorizonDistance(30);
     traj.SetTargetLane(1);
     traj.SetTargetSpeed(30);
     traj.SetInitialPose(1059.0, 1169.0, 0.55);
@@ -45,8 +46,7 @@ int main()
     vector<double> x_trajectory;
     vector<double> y_trajectory;
     
-    double distance = 30;
-    traj.Generate(distance, x_trajectory, y_trajectory);
+    traj.Generate(x_trajectory, y_trajectory);
 
     ofstream output_file("output.csv");
 
