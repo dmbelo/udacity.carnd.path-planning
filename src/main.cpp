@@ -1,5 +1,4 @@
 #include <fstream>
-// #include <math.h>
 #include <uWS/uWS.h>
 #include <chrono>
 #include <iostream>
@@ -73,8 +72,9 @@ int main()
 	}
 
 	TrajectoryGenerator traj(map_waypoints_x, map_waypoints_y, map_waypoints_s);
+	traj.SetHorizonDistance(30);
 
-	h.onMessage([&map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+	h.onMessage([&traj, &map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
 																											 uWS::OpCode opCode) {
 		// "42" at the start of the message means there's a websocket message event.
 		// The 4 signifies a websocket message
@@ -106,16 +106,17 @@ int main()
 
 					// Unit convert
 					v_car = v_car * 1.6 / 3.6; // m/s
+					a_yaw_car = a_yaw_car * M_PI / 180.0; // rad
 
 					double v_car_nominal = 50 * 1.6 / 3.6;					
 					double v_car_target = v_car_nominal;
 
 					// Previous path data given to the Planner
-					auto x_trajectory_unused = j[1]["previous_path_x"];
-					auto y_trajectory_unused = j[1]["previous_path_y"];
+					auto x_trajectory_incomplete = j[1]["previous_path_x"];
+					auto y_trajectory_incomplete = j[1]["previous_path_y"];
 					// Previous path's end s and d values
-					double s_end_trajectory_unused = j[1]["end_path_s"];
-					double d_end_trajectory_unused = j[1]["end_path_d"];
+					double s_end_trajectory_incomplete = j[1]["end_path_s"];
+					double d_end_trajectory_incomplete = j[1]["end_path_d"];
 
 					// Sensor Fusion Data, a list of all other cars on the same side of the road.
 					auto sensor_fusion = j[1]["sensor_fusion"];
@@ -135,7 +136,6 @@ int main()
 						double si  = sensor_fusion[i][5]; // car's s position in frenet coordinates,
 						double di  = sensor_fusion[i][6]; // car's d position in frenet coordinates.
 						double vi  = sqrt(vxi*vxi + vyi*vyi);
-					
 
 						// TODO 
 						// Implement the following with a nice hypertangent function or 
@@ -149,9 +149,8 @@ int main()
 						 
 						// Nominal vs. target speed and nominal vs. target lane? 
 
-
 						if ((si > s_car) & (di > 4) & (di < 8)) { // There's a car in front of us
-							cout << "There's a car " << (si - s_car) << " in front of us" << endl;
+							// cout << "There's a car " << (si - s_car) << " in front of us" << endl;
 							if ((si - s_car) < s_follow) {
 								s_follow  = si - s_car;
 
@@ -166,107 +165,32 @@ int main()
 
 					}
 
-	
 					json msgJson;
 
 					// Spline object for interpolation
-					tk::spline s;
+					// tk::spline s;
 
 					// trajectory vector to be generated
 					vector<double> x_trajectory;
 					vector<double> y_trajectory;
 
-					// spline nodes
-					// vector<double> x_spline;
-					// vector<double> y_spline;
+					int n_trajectory_incomplete = x_trajectory_incomplete.size();
+					cout << "n_trajectory_incomplete: " << n_trajectory_incomplete << endl;
 
-					// initial spline vehicle position & orientation
-					double x_, y_, x0, y0, a0, s0;
-
-					int n_trajectory_unused = x_trajectory_unused.size();
-
-					if (n_trajectory_unused > 0)
-					{
-
-						x_ = x_trajectory_unused[n_trajectory_unused - 2];
-						y_ = y_trajectory_unused[n_trajectory_unused - 2];
-						x0 = x_trajectory_unused[n_trajectory_unused - 1];
-						y0 = y_trajectory_unused[n_trajectory_unused - 1];
-						// s0 = s_end_trajectory_unused;
-						a0 = atan2(y0 - y_, x0 - x_);
-					}
-					else
-					{
-
-						// x_ = x_car - cos(a_yaw_car);
-						// y_ = y_car - sin(a_yaw_car);
-						x0 = x_car;
-						y0 = y_car;
-						// s0 = s_car;
-						a0 = a_yaw_car;
-					}
-
-					// traj.SetInitialPose(x0, y0, a0);		
-					// traj.SetTargetLane(2);	
-					// traj.SetTargetSpeed(v_car_target);
-					
-
-					// Add two points as the beginning of the spline in order to set
-					// a smooth boundary slope for the spline
-					// x_spline.push_back(x_);
-					// y_spline.push_back(y_);
-					// x_spline.push_back(x0);
-					// y_spline.push_back(y0);
-
-					// vector<double> xy_car_30 = getXY(s0 + 30, 6.0, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-					// vector<double> xy_car_60 = getXY(s0 + 60, 6.0, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-					// vector<double> xy_car_90 = getXY(s0 + 90, 6.0, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-
-					// x_spline.push_back(xy_car_30[0]);
-					// y_spline.push_back(xy_car_30[1]);
-					// x_spline.push_back(xy_car_60[0]);
-					// y_spline.push_back(xy_car_60[1]);
-					// x_spline.push_back(xy_car_90[0]);
-					// y_spline.push_back(xy_car_90[1]);
-
-					// Convert x,y_spline from world to vehicle reference frame
-					// for (int i = 0; i < x_spline.size(); i++)
+					// if (n_trajectory_incomplete > 0)
 					// {
-
-						// double dx = x_spline[i] - x0;
-						// double dy = y_spline[i] - y0;
-						// x_spline[i] = dx * cos(a0) + dy * sin(a0);
-						// y_spline[i] = -dx * sin(a0) + dy * cos(a0);
+					// 	// Copy over unused trajectory to new generated one
+					// 	for (int i = 0; i < n_trajectory_incomplete; i++)
+					// 	{
+					// 		x_trajectory.push_back(x_trajectory_incomplete[i]);
+					// 		y_trajectory.push_back(y_trajectory_incomplete[i]);
+					// 	}
 					// }
 
-					// s.set_points(x_spline, y_spline);
-
-					// Copy over unused trajectory to new generated one
-					for (int i = 0; i < n_trajectory_unused; i++)
-					{
-
-						x_trajectory.push_back(x_trajectory_unused[i]);
-						y_trajectory.push_back(y_trajectory_unused[i]);
-					}
-
-					// traj.Generate(0.0, x_trajectory, y_trajectory);
-
-					// double xi = 0;
-					// double yi = 0;
-					// double dt = 0.02;
-
-					// double ds = v_car_target * dt;
-
-					// for (int i = 0; i < 51 - n_trajectory_unused; i++)
-					// {
-
-					// 	xi += ds;
-					// 	yi = s(xi);
-
-					// 	// Convert from vehicle to world reference frame and append
-					// 	x_trajectory.push_back(xi * cos(a0) - yi * sin(a0) + x0);
-					// 	y_trajectory.push_back(xi * sin(a0) + yi * cos(a0) + y0);
-					// }
+					traj.SetInitialPose(x_car, y_car, a_yaw_car);
+					traj.SetTargetSpeed(v_car_target);
+					traj.SetTargetLane(2);
+					traj.Generate(x_trajectory, y_trajectory);
 
 					msgJson["next_x"] = x_trajectory;
 					msgJson["next_y"] = y_trajectory;

@@ -65,14 +65,15 @@ void TrajectoryGenerator::Generate(vector<double> &x_trajectory, vector<double> 
     // Calculate the end coordinates of the spline from the vehicle's current position
     double x_end = this->x0 + this->x_horizon * cos(this->theta0);
     double y_end = this->y0 + this->x_horizon * sin(this->theta0);
-    vector<double> sd0 = getFrenet(this->x0, this->y0, this->theta0, this->map_x, this->map_y);
+
+    vector<double> sd0 = getFrenet(x_end, y_end, this->theta0, this->map_x, this->map_y);
 
     // Calculate the spline knots from the desired start of the spline
     vector<double> xy_car_1 = {x_start - 0.01 * cos(theta_start), y_start - 0.01 * sin(theta_start)};
     vector<double> xy_car_2 = {x_start, y_start};
-    vector<double> xy_car_3 = getXY(sd0[0],     4 * (target_lane - 1) + 2, map_s, map_x, map_y);
-    vector<double> xy_car_4 = getXY(sd0[0]+ 10, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
-    vector<double> xy_car_5 = getXY(sd0[0]+ 20, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+    vector<double> xy_car_3 = getXY(sd0[0] + 30, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+    vector<double> xy_car_4 = getXY(sd0[0] + 45, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+    vector<double> xy_car_5 = getXY(sd0[0] + 50, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
 
     x_spline.push_back(xy_car_1[0]);
     y_spline.push_back(xy_car_1[1]);
@@ -92,6 +93,8 @@ void TrajectoryGenerator::Generate(vector<double> &x_trajectory, vector<double> 
         double dy = y_spline[i] - y_start;
         x_spline[i] = dx * cos(theta_start) + dy * sin(theta_start);
         y_spline[i] = -dx * sin(theta_start) + dy * cos(theta_start);
+
+        cout << x_spline[i] << ", " << y_spline[i] << endl;
     }
 
     tk::spline s; // Spline object for interpolation
@@ -102,19 +105,17 @@ void TrajectoryGenerator::Generate(vector<double> &x_trajectory, vector<double> 
     double dt = 0.02;
     double dx = target_speed * dt;
 
-    x_start = 1072.19;
-    int n_knots = (this->x_horizon - (x_start-this->x0)) / dx;
+    // Calculate how much of the trajectory horizon we've covered by the incomplete trajectory
+    // By finding the distance between the current position of the vehicle and the start of the
+    // trajectory and projecting that distance into the x-axis of the vehicle's csys
+    double theta1 = atan2(y_start - this->y0, x_start - this->x0) - this->theta0;
+    double x_horizon_start = distance(x_start, y_start, this->x0, this->y0) * cos(theta1);
 
-    cout << "x_horizon = " << this->x_horizon << endl;
-    cout << "x_start = " << x_start << endl;
-    cout << "x0 = " << this->x0 << endl;
-    cout << "n_knots = " << n_knots << endl;
-
+    int n_knots = (this->x_horizon - x_horizon_start) / dx;
     for (int i = 0; i < n_knots; i++)
     {
         // Calculate new x position in car csys
         xi += dx;
-        cout << xi << endl;
         yi = s(xi);
 
         // Convert from vehicle to world reference frame and append
