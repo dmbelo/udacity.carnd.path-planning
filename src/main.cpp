@@ -175,7 +175,6 @@ int main()
 					vector<double> y_trajectory;
 
 					int n_trajectory_incomplete = x_trajectory_incomplete.size();
-					cout << "n_trajectory_incomplete: " << n_trajectory_incomplete << endl;
 
 					// if (n_trajectory_incomplete > 0)
 					// {
@@ -187,6 +186,7 @@ int main()
 					// 	}
 					// }
 
+					cout << x_car << ", " << y_car << ", " << endl;
 					traj.SetInitialPose(x_car, y_car, a_yaw_car);
 					traj.SetTargetSpeed(v_car_target);
 					traj.SetTargetLane(2);
