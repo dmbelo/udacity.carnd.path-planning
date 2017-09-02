@@ -67,12 +67,9 @@ void TrajectoryGenerator::Generate(vector<double> &x_trajectory, vector<double> 
     // Calculate the spline knots from the desired start of the spline
     vector<double> xy_car_1 = {x_start - 0.01 * cos(theta_start), y_start - 0.01 * sin(theta_start)};
     vector<double> xy_car_2 = {x_start, y_start};
-    // vector<double> xy_car_3 = getXY(sd_start[0] + 30, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
-    // vector<double> xy_car_4 = getXY(sd_start[0] + 60, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
-    // vector<double> xy_car_5 = getXY(sd_start[0] + 90, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
-    vector<double> xy_car_3 = getXY(sd_start[0] + 30, 6, map_s, map_x, map_y);
-    vector<double> xy_car_4 = getXY(sd_start[0] + 60, 6, map_s, map_x, map_y);
-    vector<double> xy_car_5 = getXY(sd_start[0] + 90, 6, map_s, map_x, map_y);
+    vector<double> xy_car_3 = getXY(sd_start[0] + 50,  4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+    vector<double> xy_car_4 = getXY(sd_start[0] + 75,  4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+    vector<double> xy_car_5 = getXY(sd_start[0] + 100, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
 
     x_spline.push_back(xy_car_1[0]);
     y_spline.push_back(xy_car_1[1]);
@@ -114,7 +111,6 @@ void TrajectoryGenerator::Generate(vector<double> &x_trajectory, vector<double> 
         // Calculate new x position in car csys
         xi += dx;
         yi = s(xi);
-
         // Convert from vehicle to world reference frame and append
         x_trajectory.push_back(xi * cos(theta_start) - yi * sin(theta_start) + x_start);
         y_trajectory.push_back(xi * sin(theta_start) + yi * cos(theta_start) + y_start);

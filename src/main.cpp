@@ -79,8 +79,8 @@ int main()
 		// "42" at the start of the message means there's a websocket message event.
 		// The 4 signifies a websocket message
 		// The 2 signifies a websocket event
-		//auto sdata = string(data).substr(0, length);
-		//cout << sdata << endl;
+		// auto sdata = string(data).substr(0, length);
+		// cout << sdata << endl;
 		if (length && length > 2 && data[0] == '4' && data[1] == '2')
 		{
 
@@ -150,12 +150,10 @@ int main()
 						// Nominal vs. target speed and nominal vs. target lane? 
 
 						if ((si > s_car) & (di > 4) & (di < 8)) { // There's a car in front of us
-							// cout << "There's a car " << (si - s_car) << " in front of us" << endl;
 							if ((si - s_car) < s_follow) {
 								s_follow  = si - s_car;
 
 								if ((s_follow < s_follow_min) & (vi < v_car_target)) {
-									cout << "s_follow, vi, vxi , vyi: " << s_follow << ", " << vi << ", " << vxi << ", " << vyi << endl;
 									v_car_target = vi * 0.95;
 								} else {
 									v_car_target = v_car_nominal;
@@ -167,26 +165,22 @@ int main()
 
 					json msgJson;
 
-					// Spline object for interpolation
-					// tk::spline s;
-
 					// trajectory vector to be generated
 					vector<double> x_trajectory;
 					vector<double> y_trajectory;
 
 					int n_trajectory_incomplete = x_trajectory_incomplete.size();
+					int n_trajectory_copy = 5;
+					if (n_trajectory_incomplete > n_trajectory_copy)
+					{
+						// Copy over unused trajectory to new generated one
+						for (int i = 0; i < n_trajectory_copy; i++)
+						{
+							x_trajectory.push_back(x_trajectory_incomplete[i]);
+							y_trajectory.push_back(y_trajectory_incomplete[i]);
+						}
+					}
 
-					// if (n_trajectory_incomplete > 0)
-					// {
-					// 	// Copy over unused trajectory to new generated one
-					// 	for (int i = 0; i < n_trajectory_incomplete; i++)
-					// 	{
-					// 		x_trajectory.push_back(x_trajectory_incomplete[i]);
-					// 		y_trajectory.push_back(y_trajectory_incomplete[i]);
-					// 	}
-					// }
-
-					cout << x_car << ", " << y_car << ", " << endl;
 					traj.SetInitialPose(x_car, y_car, a_yaw_car);
 					traj.SetTargetSpeed(v_car_target);
 					traj.SetTargetLane(2);
@@ -233,7 +227,6 @@ int main()
 
 	h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code,
 						   char *message, size_t length) {
-		ws.close();
 		std::cout << "Disconnected" << std::endl;
 	});
 
