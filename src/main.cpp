@@ -6,7 +6,9 @@
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
-#include "trajectory_generator.h"
+#include "trajectory/trajectory_generator.h"
+#include "behavior/road.h"
+#include "behavior/vehicle.h"
 
 using namespace std;
 
@@ -30,6 +32,27 @@ string hasData(string s)
 		return s.substr(b1, b2 - b1 + 2);
 	}
 	return "";
+}
+
+int d_to_lane(double d)
+{
+	double l;
+	if (d >= 0 & d <= 4)
+	{
+		l = 1;
+	} else if (d > 4 & d <= 8)
+	{
+		l = 2;
+	} else if (d > 8 & d < 12)
+	{
+		l = 3;
+	} else
+	{
+		l = -1;
+	}
+
+	return l;
+
 }
 
 int main()
@@ -74,7 +97,24 @@ int main()
 	TrajectoryGenerator traj(map_waypoints_x, map_waypoints_y, map_waypoints_s);
 	traj.SetHorizonDistance(30);
 
-	h.onMessage([&traj, &map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+	// Vehicle initial states
+	int lane0 = 2;
+	int s0 = 0;
+	int v0 = 0;
+	int g0 = 0;
+	Vehicle ego(lane0, s0, v0, g0);	
+
+	// Vehicle configuration
+	int v_limit = 50 * 1.6 / 3.6;
+	int n_lanes = 3;
+	int s_goal = 300; // Distance to maintain target lane 
+	int lane_goal = 2;
+	int g_max = 2;
+
+	vector<int> config = {v_limit, n_lanes, s_goal, lane_goal, g_max};
+	ego.configure(config);
+
+	h.onMessage([&traj, &ego](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
 																											 uWS::OpCode opCode) {
 		// "42" at the start of the message means there's a websocket message event.
 		// The 4 signifies a websocket message
@@ -108,9 +148,6 @@ int main()
 					v_car = v_car * 1.6 / 3.6; // m/s
 					a_yaw_car = a_yaw_car * M_PI / 180.0; // rad
 
-					double v_car_nominal = 50 * 1.6 / 3.6;					
-					double v_car_target = v_car_nominal;
-
 					// Previous path data given to the Planner
 					auto x_trajectory_incomplete = j[1]["previous_path_x"];
 					auto y_trajectory_incomplete = j[1]["previous_path_y"];
@@ -121,49 +158,49 @@ int main()
 					// Sensor Fusion Data, a list of all other cars on the same side of the road.
 					auto sensor_fusion = j[1]["sensor_fusion"];
 
-					double s_follow_min = 30;
-					double s_follow = 1e6;
+					/*
+					 * Behavior Planning
+					 */
 
-					int n_vehicles = sensor_fusion.size();
+					map<int ,vector<vector<int> > > predictions;
+					map<int, Vehicle> vehicles;
 
-					for (int i = 0; i < n_vehicles; i++) {
+					for (auto &sf : sensor_fusion)
+					{
+						double vx = sf[3];
+						double vy = sf[4];
+						double s = sf[5];
+						double d = sf[6];
 						
-						double id  = sensor_fusion[i][0]; // car's unique ID
-						double xi  = sensor_fusion[i][1]; // car's x position in map coordinates
-						double yi  = sensor_fusion[i][2]; // car's y position in map coordinates
-						double vxi = sensor_fusion[i][3]; // car's x velocity in m/s
-						double vyi = sensor_fusion[i][4]; // car's y velocity in m/s
-						double si  = sensor_fusion[i][5]; // car's s position in frenet coordinates,
-						double di  = sensor_fusion[i][6]; // car's d position in frenet coordinates.
-						double vi  = sqrt(vxi*vxi + vyi*vyi);
+						int l = d_to_lane(d);
 
-						// TODO 
-						// Implement the following with a nice hypertangent function or 
-						// something similiar to have a smooth control actuation
-						// Find closest vehicle in front of us
+						// cout << "d, l: " << d << ", " << l << endl;
 
-						// TODO Implement the ability to limit the trajectory based on accelation and jerk
-
-						// TODO Start the path from scratch if you have an abrupt change in speed (
-						// like a vehicle crossing infront of you)
-						 
-						// Nominal vs. target speed and nominal vs. target lane? 
-
-						if ((si > s_car) & (di > 4) & (di < 8)) { // There's a car in front of us
-							if ((si - s_car) < s_follow) {
-								s_follow  = si - s_car;
-
-								if ((s_follow < s_follow_min) & (vi < v_car_target)) {
-									v_car_target = vi * 0.95;
-								} else {
-									v_car_target = v_car_nominal;
-								}
-							}
+						if (l > 0)
+						{
+							double lane_speed = sqrt(vx*vx + vy*vy);
+							cout << "Vehicle: " << sf[0] << ", Speed: " << vx << ", " << vy << ", " << lane_speed << ", Lane" << l << ", s = " << s << endl;
+							Vehicle vehicle = Vehicle(l, s, lane_speed, 0);
+							vehicles.insert(std::pair<int, Vehicle>(sf[0], vehicle));
 						}
-
 					}
 
-					json msgJson;
+					ego.v = v_car;
+					ego.lane = d_to_lane(d_car);
+					ego.update_state(predictions);
+					ego.realize_state(predictions);
+					
+					/*
+					 * Trajectory Generation
+					 */
+
+					int lane_target = ego.lane;
+					int g_target = ego.a;
+
+					cout << "g_target: " << g_target << endl;
+
+					double v_car_target = g_target + ego.v;
+					v_car_target = 10;
 
 					// trajectory vector to be generated
 					vector<double> x_trajectory;
@@ -185,6 +222,12 @@ int main()
 					traj.SetTargetSpeed(v_car_target);
 					traj.SetTargetLane(2);
 					traj.Generate(x_trajectory, y_trajectory);
+
+					/*
+					 * Message
+					 */ 
+
+					json msgJson;
 
 					msgJson["next_x"] = x_trajectory;
 					msgJson["next_y"] = y_trajectory;
