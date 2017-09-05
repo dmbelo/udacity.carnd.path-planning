@@ -7,8 +7,8 @@
 #include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
 #include "trajectory/trajectory_generator.h"
-#include "behavior/road.h"
 #include "behavior/vehicle.h"
+#include <iomanip>
 
 using namespace std;
 
@@ -107,7 +107,7 @@ int main()
 	// Vehicle configuration
 	int v_limit = 50 * 1.6 / 3.6;
 	int n_lanes = 3;
-	int s_goal = 300; // Distance to maintain target lane 
+	int s_goal = 1000; // Distance to maintain target lane 
 	int lane_goal = 2;
 	int g_max = 2;
 
@@ -162,9 +162,14 @@ int main()
 					 * Behavior Planning
 					 */
 
-					map<int ,vector<vector<int> > > predictions;
-					map<int, Vehicle> vehicles;
+					cout << "#################################" << endl;
+					cout << "Sensor Fusion" << endl;
+					cout << "#################################" << endl;
+					cout << "Vehicle\t\tSpeed\t\tLane\t\ts" << endl; 
+					cout << "Ego\t\t" << v_car << "\t\t" << d_to_lane(d_car) << "\t\t" << s_car << endl;
 
+					// Generate the vehicles map
+					map<int, Vehicle> vehicles;
 					for (auto &sf : sensor_fusion)
 					{
 						double vx = sf[3];
@@ -174,19 +179,31 @@ int main()
 						
 						int l = d_to_lane(d);
 
-						// cout << "d, l: " << d << ", " << l << endl;
-
 						if (l > 0)
 						{
 							double lane_speed = sqrt(vx*vx + vy*vy);
-							cout << "Vehicle: " << sf[0] << ", Speed: " << vx << ", " << vy << ", " << lane_speed << ", Lane" << l << ", s = " << s << endl;
+							cout << sf[0] << "\t\t" << lane_speed << "\t\t" << l << "\t\t" << s << endl;
 							Vehicle vehicle = Vehicle(l, s, lane_speed, 0);
 							vehicles.insert(std::pair<int, Vehicle>(sf[0], vehicle));
 						}
 					}
 
+					// Insert the ego vehicle
+					vehicles.insert(std::pair<int, Vehicle>(100, ego));
+
+					// Generate the predictions map
+					map<int ,vector<vector<int>>> predictions;
+					for (auto &veh : vehicles)
+					{
+						vector<vector<int>> preds = veh.second.generate_predictions(10);
+						predictions[veh.first] = preds;
+					}
+
+
 					ego.v = v_car;
+					ego.s = s_car;
 					ego.lane = d_to_lane(d_car);
+
 					ego.update_state(predictions);
 					ego.realize_state(predictions);
 					
@@ -194,13 +211,17 @@ int main()
 					 * Trajectory Generation
 					 */
 
-					int lane_target = ego.lane;
-					int g_target = ego.a;
+					// int lane_target = ego.lane;
+					// int g_target = ego.a;
 
-					cout << "g_target: " << g_target << endl;
+					cout << "#################################" << endl;
+					cout << "Behavior Planning Decision" << endl;
+					cout << "#################################" << endl;
+					cout << "State\tLane\tAccel" << endl;
+					cout << ego.state << "\t" << ego.lane << "\t" << ego.a << endl;
 
-					double v_car_target = g_target + ego.v;
-					v_car_target = 10;
+					double lane_target = ego.lane;
+					double v_car_target = v_car + ego.a;
 
 					// trajectory vector to be generated
 					vector<double> x_trajectory;
@@ -220,7 +241,7 @@ int main()
 
 					traj.SetInitialPose(x_car, y_car, a_yaw_car);
 					traj.SetTargetSpeed(v_car_target);
-					traj.SetTargetLane(2);
+					traj.SetTargetLane(lane_target);
 					traj.Generate(x_trajectory, y_trajectory);
 
 					/*

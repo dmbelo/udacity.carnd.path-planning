@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <iterator>
+#include <iomanip>
 
 /**
  * Initializes Vehicle
@@ -72,6 +73,11 @@ void Vehicle::update_state(map<int,vector < vector<int> > > predictions) {
     double cost_target_end_lane;
     double cost_lane_boundaries;
 
+    cout << "#################################" << endl;
+    cout << "Cost Functions" << endl;
+    cout << "#################################" << endl;
+    cout << "State\tCollision\tSpeed\tLane\tEndLane\tLaneBoundaries\tTotal" << endl; 
+
     for (string test_state : states)
     {
 
@@ -105,7 +111,7 @@ void Vehicle::update_state(map<int,vector < vector<int> > > predictions) {
             int index = pred.first;
             vector<vector<int>> v = pred.second;
             // Check predictions one step in future
-            if ((v[1][0] == pred_lane) && (abs(v[1][1] - pred_s) <= L) && index != -1)
+            if ((v[1][0] == (double) pred_lane) && (abs(v[1][1] - (double) pred_s) <= L) && index != -1)
             {
                 // cout << "Collision w/ car:" << index << ", "
                     //  << v[1][0] << " " << pred_lane << ", " 
@@ -114,11 +120,11 @@ void Vehicle::update_state(map<int,vector < vector<int> > > predictions) {
             }
         }
 
-        cout << "this->target_speed: " << this->target_speed << endl;
-        cout << "pred_v: " << pred_v << endl;
-        cost_target_speed = 1 * abs(this->target_speed - pred_v);
-        cost_target_lane = 1 * pow(target_lane - pred_lane, 2);
-        cost_target_end_lane = 10 * (1 - exp(-abs(pred_lane - target_lane)/(target_s - (double) pred_s)));
+        // cout << "this->target_speed: " << this->target_speed << endl;
+        // cout << "pred_v: " << pred_v << endl;
+        cost_target_speed = 1 * abs(this->target_speed - (double) pred_v);
+        cost_target_lane = 1 * pow(target_lane - (double) pred_lane, 2);
+        cost_target_end_lane = 10 * (1 - exp(-abs((double) pred_lane - target_lane)/(target_s - (double) pred_s)));
         
         if (pred_lane < 0 || pred_lane > 3) {
             cost_lane_boundaries = 1000;
@@ -129,14 +135,13 @@ void Vehicle::update_state(map<int,vector < vector<int> > > predictions) {
 
         costs.push_back(cost);
 
-        cout << "State: " << test_state << ": " 
-             << cost_collision << ", "
-             << cost_target_speed << ", "
-             << cost_target_lane << ", "
-             << cost_target_end_lane << ", "
-             << cost_lane_boundaries << " = "
-             << cost << endl;
-
+        cout << test_state << "\t" 
+             << setprecision(4) << cost_collision << "\t\t"
+             << setprecision(4) << cost_target_speed << "\t"
+             << setprecision(4) << cost_target_lane << "\t"
+             << setprecision(4) << cost_target_end_lane <<"\t"
+             << setprecision(4) << cost_lane_boundaries << "\t\t"
+             << setprecision(4) << cost << endl;
 
     }
 
@@ -153,7 +158,7 @@ void Vehicle::update_state(map<int,vector < vector<int> > > predictions) {
     }
 
     this->state = states[min_cost_index];
-    cout << "State: " << this->state << endl;
+    // cout << "State: " << this->state << endl;
 
 }
 
