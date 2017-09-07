@@ -17,9 +17,9 @@ public:
 
     vector<int> votes;
 
-    double v_target;
+    double v_target = 50 * 1.6 / 3.6;
     
-    double g_max;
+    double g_max = 2;
 
     double s_buffer = 5;
 

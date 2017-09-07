@@ -10,13 +10,13 @@ Planner::~Planner(){}
 void Planner::UpdateState()
 {
 
-    vector<double> cost_vec;
+    vector<double> cost_vec = {0.0};
 
     for (string test_state : this->states)
     {
         this->road.Reset();
-        // this->RealizeState(state)
-        this->road.Simulate(10);
+        RealizeState(test_state);
+        this->road.Simulate(2);
 
         // cost_vec.push_back(cost);
     }
@@ -39,14 +39,16 @@ void Planner::UpdateState()
     if (this->votes[idx_min_cost] > n_votes_threshold)
     {
         this->state = states[idx_min_cost];
+        RealizeState(states[idx_min_cost]);
         ResetVotes();
+
     }
 
 }
 
 void Planner::ResetVotes()
 {
-    this->votes = {0, 0};
+    this->votes = {0};
 }
 
 void Planner::RealizeState(string state)
@@ -110,7 +112,7 @@ double Planner::GetMaxAccel()
         }
     }
 
-    // Find vehicle to follow
+    // Limit accel if approaching vehicle in front
     Vehicle vehicle_lead;
     if (traffic_in_front.size() > 0)
     {
@@ -123,17 +125,19 @@ double Planner::GetMaxAccel()
                 vehicle_lead = vehicle;
             }
         }
+
+        double s_lead_next = vehicle_lead.s + vehicle_lead.v;
+        double s_ego_next = s_ego + this->road.ego.v;
+
+        double s_delta_next = s_lead_next - s_ego_next;
+        double s_available = s_delta_next - s_buffer;
+
+        g_max = min(g_max, s_available); // assuming 1 sec integration time
+
     }
 
-    double s_lead_next = vehicle_lead.s + vehicle_lead.v;
-    double s_ego_next = s_ego + this->road.ego.v;
-
-    double s_delta_next = s_lead_next - s_ego_next;
-    double s_available = s_delta_next - s_buffer;
-
-    g_max = min(g_max, s_available); // assuming 1 sec integration time
-
     return g_max;
+
 }
 
 
