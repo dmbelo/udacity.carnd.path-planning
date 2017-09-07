@@ -157,7 +157,7 @@ int main()
 					// cout << ego.state << "\t" << ego.lane << "\t" << ego.a << endl;
 
 					double lane_target = 2;
-					double v_car_target  = 30 * 1.6 / 3.6;
+					double v_car_target  = 40 * 1.6 / 3.6;
 					// double v_car_target = v_car + planner.road.ego.g;
 
 					// cout << "#################################" << endl;
@@ -168,18 +168,17 @@ int main()
 					vector<double> y_trajectory;
 
 					int n_trajectory_incomplete = x_trajectory_incomplete.size();
-					int n_trajectory_copy = 5;
-					if (n_trajectory_incomplete > n_trajectory_copy)
+					if (n_trajectory_incomplete > 0)
 					{
 						// Copy over unused trajectory to new generated one
-						for (int i = 0; i < n_trajectory_copy; i++)
+						for (int i = 0; i < n_trajectory_incomplete; i++)
 						{
 							x_trajectory.push_back(x_trajectory_incomplete[i]);
 							y_trajectory.push_back(y_trajectory_incomplete[i]);
 						}
 					}
 
-					traj.SetInitialPose(x_car, y_car, a_yaw_car);
+					traj.SetInitialPose(x_car, y_car, a_yaw_car, s_car);
 					traj.SetTargetSpeed(v_car_target);
 					traj.SetTargetLane(lane_target);
 					traj.Generate(x_trajectory, y_trajectory);
