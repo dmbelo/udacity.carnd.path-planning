@@ -1,13 +1,15 @@
 #include "road.h"
 
-Road::Road(vector<double> ego_vec, vector<vector<double>> traffic_vec)
+Road::Road(){}
+
+Road::~Road(){}
+
+void Road::Populate(vector<double> ego_vec, vector<vector<double>> traffic_vec)
 {
     this->ego_vec = ego_vec;
     this->traffic_vec = traffic_vec;
-    Initialize();
+    Reset();
 }
-
-Road::~Road(){}
 
 void Road::Initialize()
 {

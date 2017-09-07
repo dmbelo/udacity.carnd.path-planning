@@ -60,7 +60,8 @@ int main(){
         }
     );
 
-    Road road(ego_vector, traffic_vector);
+    Road road;
+    road.Populate(ego_vector, traffic_vector);
 
     cout << "Initial Values" << endl;
     road.Print();

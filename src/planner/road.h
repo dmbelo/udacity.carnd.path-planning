@@ -16,9 +16,11 @@ public:
     Vehicle ego;
     vector<Vehicle> traffic;
 
-    Road(vector<double> ego_state, vector<vector<double>> traffic_state);
+    Road();
 
     virtual ~Road();
+
+    void Populate(vector<double> ego_state, vector<vector<double>> traffic_state);
 
     void Initialize();
 
