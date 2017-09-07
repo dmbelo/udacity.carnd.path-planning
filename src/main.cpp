@@ -223,6 +223,9 @@ int main()
 					double lane_target = ego.lane;
 					double v_car_target = v_car + ego.a;
 
+					cout << "#################################" << endl;
+					cout << "Trajectory Generation" << endl;
+					cout << "#################################" << endl;
 					// trajectory vector to be generated
 					vector<double> x_trajectory;
 					vector<double> y_trajectory;
