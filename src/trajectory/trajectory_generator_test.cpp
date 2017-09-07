@@ -38,10 +38,10 @@ int main()
 
     TrajectoryGenerator traj(map_x, map_y, map_s);
 
-    traj.SetHorizonDistance(30);
-    traj.SetTargetLane(1);
+    traj.SetHorizonDistance(90);
+    traj.SetTargetLane(0);
     traj.SetTargetSpeed(30);
-    traj.SetInitialPose(1059.0, 1169.0, 0.55);
+    traj.SetInitialPose(1059.0, 1169.0, 0 * 0.55);
     
     vector<double> x_trajectory;
     vector<double> y_trajectory;

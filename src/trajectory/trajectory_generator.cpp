@@ -62,14 +62,19 @@ void TrajectoryGenerator::Generate(vector<double> &x_trajectory, vector<double> 
         theta_start = this->theta0;
     }
 
-    vector<double> sd_start = getFrenet(this->x0, this->y0, this->theta0, this->map_x, this->map_y);
+    vector<double> sd0 = getFrenet(this->x0, this->y0, this->theta0, this->map_x, this->map_y);
 
     // Calculate the spline knots from the desired start of the spline
-    vector<double> xy_car_1 = {x_start - 0.01 * cos(theta_start), y_start - 0.01 * sin(theta_start)};
+    vector<double> xy_car_1 = {x_start - 10 * cos(theta_start), y_start - 10 * sin(theta_start)};
     vector<double> xy_car_2 = {x_start, y_start};
-    vector<double> xy_car_3 = getXY(sd_start[0] + 50,  4 * (target_lane - 1) + 2, map_s, map_x, map_y);
-    vector<double> xy_car_4 = getXY(sd_start[0] + 75,  4 * (target_lane - 1) + 2, map_s, map_x, map_y);
-    vector<double> xy_car_5 = getXY(sd_start[0] + 100, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+    // vector<double> xy_car_3 = getXY(sd0[0] + 50,  4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+    // vector<double> xy_car_4 = getXY(sd0[0] + 75,  4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+    // vector<double> xy_car_5 = getXY(sd0[0] + 100, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+
+    // for debugging
+    vector<double> xy_car_3 = getXY(sd0[0] + 30,  0, map_s, map_x, map_y);
+    vector<double> xy_car_4 = getXY(sd0[0] + 60,  0, map_s, map_x, map_y);
+    vector<double> xy_car_5 = getXY(sd0[0] + 90, 0, map_s, map_x, map_y);
 
     x_spline.push_back(xy_car_1[0]);
     y_spline.push_back(xy_car_1[1]);
@@ -115,5 +120,16 @@ void TrajectoryGenerator::Generate(vector<double> &x_trajectory, vector<double> 
         x_trajectory.push_back(xi * cos(theta_start) - yi * sin(theta_start) + x_start);
         y_trajectory.push_back(xi * sin(theta_start) + yi * cos(theta_start) + y_start);
     }
+
+    // For debugging
+    // for (int i = 0; i < x_spline.size(); i++)
+    // {
+    //     // Calculate new x position in car csys
+    //     xi = x_spline[i];
+    //     yi = y_spline[i];
+    //     // Convert from vehicle to world reference frame and append
+    //     x_trajectory.push_back(xi * cos(theta_start) - yi * sin(theta_start) + x_start);
+    //     y_trajectory.push_back(xi * sin(theta_start) + yi * cos(theta_start) + y_start);
+    // }
 
 }
