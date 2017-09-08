@@ -10,14 +10,27 @@ Planner::~Planner(){}
 void Planner::UpdateState()
 {
 
-    vector<double> cost_vec = {0.0, 0.0, 0.0};
+    vector<double> cost_vec;
+
+    cout << "TestState\tCollision\tTargetSpeet\tChangeState\tRoadBoundary\tTotal" << endl;
 
     for (string test_state : this->states)
     {
         RealizeState(test_state);
-        // this->road.Simulate(2);
-        // cost_vec.push_back(cost);
+        this->road.Simulate(1);
+        double cost_collision = GetCollisionCost();
+        double cost_target_speed = GetTargetSpeedCost();
+        double cost_change_state = GetChangeStateCost(test_state);
+        double cost_road_boundary = GetRoadBoundaryCost();
+        double cost = cost_collision + cost_target_speed + cost_change_state + cost_road_boundary;
+        cost_vec.push_back(cost);
         this->road.Reset();
+
+        cout << test_state << "\t\t"
+             << setprecision(4) << cost_collision << "\t\t" << setprecision(4) << cost_target_speed << "\t\t" 
+             << setprecision(4) << cost_change_state << "\t\t" << setprecision(4) << cost_road_boundary << "\t\t" 
+             << setprecision(4) << cost << endl;
+
     }
 
     double min_cost = 1e10;
@@ -31,14 +44,21 @@ void Planner::UpdateState()
         }
     }
 
-    // Increment the vote count
-    this->votes[idx_min_cost] += 1;
+    if (this->state.compare("KL") == 0) // If we're in KL go to vote
+    {
+        // Increment the vote count
+        this->votes[idx_min_cost] += 1;
 
-    // Check weather we've exceeded the threshold change state if so
-    if (this->votes[idx_min_cost] > n_votes_threshold)
+        // Check weather we've exceeded the threshold change state if so
+        if (this->votes[idx_min_cost] > n_votes_threshold)
+        {
+            this->state = states[idx_min_cost];
+            ResetVotes();
+        }
+    }
+    else
     {
         this->state = states[idx_min_cost];
-        ResetVotes();
     }
 
     RealizeState(this->state);    
@@ -152,4 +172,47 @@ double Planner::GetMaxAccel()
 
 }
 
+double Planner::GetCollisionCost()
+{
 
+    double cost = 0;
+    double s_ego = this->road.ego.s;
+    int l_ego = this->road.ego.l;
+
+    // Detect collision
+    for (const auto &vehicle : this->road.traffic)
+    {
+        if ((vehicle.l == l_ego) && (abs(vehicle.s - s_ego) <= this->s_collision))
+        {
+            cost = 1000;
+        }
+    }
+
+    return cost;
+
+}
+
+double Planner::GetTargetSpeedCost()
+{
+    return abs(this->v_target - this->road.ego.v);
+}
+
+double Planner::GetChangeStateCost(string test_state)
+{
+    double cost = 0;
+    if (test_state.compare(this->state) != 0)
+    {
+        cost = 0.1;
+    }
+    return cost;
+}
+
+double Planner::GetRoadBoundaryCost()
+{
+    double cost = 0;
+    if ((this->road.ego.l < 1) || (this->road.ego.l > 3))
+    {
+        cost = 1e4;
+    }
+    return cost;
+}

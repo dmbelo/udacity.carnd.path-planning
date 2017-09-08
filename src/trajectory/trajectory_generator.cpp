@@ -47,6 +47,8 @@ void TrajectoryGenerator::Generate(vector<double> &x_trajectory, vector<double> 
     int n_trajectory = x_trajectory.size();
 
     // Find the coordinates for the start of the spline
+    vector<double> xy_car_1;
+    vector<double> xy_car_2;
     double x_start, y_start, theta_start;
     if (n_trajectory > 2)
     {
@@ -54,29 +56,31 @@ void TrajectoryGenerator::Generate(vector<double> &x_trajectory, vector<double> 
         double y_   = y_trajectory[n_trajectory - 2];
         x_start     = x_trajectory[n_trajectory - 1];
         y_start     = y_trajectory[n_trajectory - 1];
-        theta_start = atan2(y_start - y_, x_start - x_); 
+        // theta_start = atan2(y_start - y_, x_start - x_); 
+        xy_car_1 = {x_, y_};
+        xy_car_2 = {x_start, y_start};
     }
     else
     {
         x_start     = this->x0;
         y_start     = this->y0;
         theta_start = this->theta0;
+        xy_car_1 = {x_start - cos(theta_start), y_start - sin(theta_start)};
+        xy_car_2 = {x_start, y_start};
     }
 
     vector<double> sd0 = getFrenet(this->x0, this->y0, this->theta0, this->map_x, this->map_y);
 
     // Calculate the spline knots from the desired start of the spline
-    // vector<double> xy_car_1 = {x_start - 10 * cos(theta_start), y_start - 10 * sin(theta_start)};
-    // vector<double> xy_car_2 = {x_start, y_start};
-    // vector<double> xy_car_3 = getXY(sd0[0] + 30, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
-    // vector<double> xy_car_4 = getXY(sd0[0] + 60, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
-    // vector<double> xy_car_5 = getXY(sd0[0] + 90, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+    vector<double> xy_car_3 = getXY(sd0[0] + 30, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+    vector<double> xy_car_4 = getXY(sd0[0] + 60, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+    vector<double> xy_car_5 = getXY(sd0[0] + 90, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
 
-    vector<double> xy_car_1 = {x_start - 10 * cos(theta_start), y_start - 10 * sin(theta_start)};
-    vector<double> xy_car_2 = {x_start, y_start};
-    vector<double> xy_car_3 = getXY(this->s0 + 30, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
-    vector<double> xy_car_4 = getXY(this->s0 + 60, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
-    vector<double> xy_car_5 = getXY(this->s0 + 90, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+    // vector<double> xy_car_1 = {x_start - cos(theta_start), y_start - sin(theta_start)};
+    // vector<double> xy_car_2 = {x_start, y_start};
+    // vector<double> xy_car_3 = getXY(this->s0 + 30, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+    // vector<double> xy_car_4 = getXY(this->s0 + 60, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+    // vector<double> xy_car_5 = getXY(this->s0 + 90, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
 
     x_spline.push_back(xy_car_1[0]);
     y_spline.push_back(xy_car_1[1]);

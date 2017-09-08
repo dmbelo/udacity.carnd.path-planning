@@ -3,6 +3,7 @@
 
 #include "road.h"
 #include "vehicle.h"
+#include <iomanip>
 
 using namespace std;
 
@@ -23,7 +24,9 @@ public:
 
     double s_buffer = 20;
 
-    int n_votes_threshold = 10;
+    double s_collision = 5; // Distance b/w vehicle origins to trigger collision
+
+    int n_votes_threshold = 50;
 
     Planner();
 
@@ -44,6 +47,14 @@ public:
     // void RealizePrepLaneChange(string flag);
     
     double GetMaxAccel();
+
+    double GetCollisionCost();
+
+    double GetTargetSpeedCost();
+
+    double GetChangeStateCost(string test_state);
+
+    double GetRoadBoundaryCost();
 
 private:
 

@@ -156,10 +156,16 @@ int main()
 					// cout << "State\tLane\tAccel" << endl;
 					// cout << ego.state << "\t" << ego.lane << "\t" << ego.a << endl;
 
-					double lane_target = 2;
+					double lane_target = planner.road.ego.l;
 					double v_car_target = v_car + planner.road.ego.g;
-					// double v_car_target  = 40 * 1.6 / 3.6;
-					// double v_car_target = v_car + planner.road.ego.g;
+
+					cout << "#################################" << endl;
+					cout << "Behavior Planning Commands" << endl;
+					cout << "State:\t" << planner.state << endl;
+					cout << "Accel:\t" << planner.road.ego.g << endl;
+					cout << "Vel:\t" << v_car_target << endl;
+					cout << "Lane:\t" << lane_target << endl; 
+					cout << "#################################" << endl;
 
 					// cout << "#################################" << endl;
 					// cout << "Trajectory Generation" << endl;
