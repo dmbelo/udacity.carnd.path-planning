@@ -169,7 +169,7 @@ int main()
 					vector<double> y_trajectory;
 
 					int n_trajectory_incomplete = x_trajectory_incomplete.size();
-					if (n_trajectory_incomplete > 0)
+					if (n_trajectory_incomplete > 2)
 					{
 						// Copy over unused trajectory to new generated one
 						for (int i = 0; i < n_trajectory_incomplete; i++)

@@ -10,15 +10,14 @@ Planner::~Planner(){}
 void Planner::UpdateState()
 {
 
-    vector<double> cost_vec = {0.0};
+    vector<double> cost_vec = {0.0, 0.0, 0.0};
 
     for (string test_state : this->states)
     {
-        this->road.Reset();
         RealizeState(test_state);
-        this->road.Simulate(2);
-
+        // this->road.Simulate(2);
         // cost_vec.push_back(cost);
+        this->road.Reset();
     }
 
     double min_cost = 1e10;
@@ -39,16 +38,16 @@ void Planner::UpdateState()
     if (this->votes[idx_min_cost] > n_votes_threshold)
     {
         this->state = states[idx_min_cost];
-        RealizeState(states[idx_min_cost]);
         ResetVotes();
-
     }
+
+    RealizeState(this->state);    
 
 }
 
 void Planner::ResetVotes()
 {
-    this->votes = {0};
+    this->votes = {0, 0, 0};
 }
 
 void Planner::RealizeState(string state)
@@ -56,23 +55,22 @@ void Planner::RealizeState(string state)
     // Given a state, realize it by adjusting acceleration and lane.
     // Note - lane changes happen instantaneously.
 
-    RealizeKeepLane();
     // if(state.compare("CS") == 0)
     // {
     // 	RealizeConstantSpeed();
     // }
-    // else if(state.compare("KL") == 0)
-    // {
-    // 	RealizeKeepLane();
-    // }
-    // else if(state.compare("LCL") == 0)
-    // {
-    // 	RealizeLaneChange("L");
-    // }
-    // else if(state.compare("LCR") == 0)
-    // {
-    // 	RealizeLaneChange("R");
-    // }
+    if(state.compare("KL") == 0)
+    {
+    	RealizeKeepLane();
+    }
+    else if(state.compare("LCL") == 0)
+    {
+    	RealizeLaneChange("L");
+    }
+    else if(state.compare("LCR") == 0)
+    {
+    	RealizeLaneChange("R");
+    }
     // else if(state.compare("PLCL") == 0)
     // {
     // 	RealizePrepLaneChange("L");
@@ -92,6 +90,20 @@ void Planner::RealizeKeepLane()
 {
     this->road.ego.g = GetMaxAccel();
 }
+
+void Planner::RealizeLaneChange(string direction)
+{
+    if (direction.compare("L") == 0)
+    {
+        this->road.ego.l -= 1;
+    } 
+    else
+    {
+        this->road.ego.l += 1;
+    }
+    this->road.ego.g = GetMaxAccel();
+}
+
 
 double Planner::GetMaxAccel()
 {

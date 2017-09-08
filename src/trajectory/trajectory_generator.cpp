@@ -151,18 +151,4 @@ void TrajectoryGenerator::Generate(vector<double> &x_trajectory, vector<double> 
 
     }
 
-
-
-
-    // For debugging
-    // for (int i = 0; i < x_spline.size(); i++)
-    // {
-    //     // Calculate new x position in car csys
-    //     xi = x_spline[i];
-    //     yi = y_spline[i];
-    //     // Convert from vehicle to world reference frame and append
-    //     x_trajectory.push_back(xi * cos(theta_start) - yi * sin(theta_start) + x_start);
-    //     y_trajectory.push_back(xi * sin(theta_start) + yi * cos(theta_start) + y_start);
-    // }
-
 }

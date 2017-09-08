@@ -17,7 +17,7 @@ public:
 
     vector<int> votes;
 
-    double v_target = 50 * 1.6 / 3.6;
+    double v_target = 49 * 1.6 / 3.6;
     
     double g_max = 2;
 
@@ -39,7 +39,7 @@ public:
 
     void RealizeKeepLane();
 
-    // void RealizeLaneChange(string flag);
+    void RealizeLaneChange(string direction);
 
     // void RealizePrepLaneChange(string flag);
     
@@ -48,9 +48,9 @@ public:
 private:
 
     // vector<string> states = {"KL", "LCL", "LCR", "PLCL", "PLCR"};
-    vector<string> states = {"KL"};
+    vector<string> states = {"KL", "LCL", "LCR"};
 
-    int n_states = 1;
+    int n_states = 3;
 
 };      
 
