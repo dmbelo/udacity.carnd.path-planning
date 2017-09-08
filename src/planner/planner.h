@@ -21,7 +21,7 @@ public:
     
     double g_max = 2;
 
-    double s_buffer = 5;
+    double s_buffer = 20;
 
     int n_votes_threshold = 10;
 

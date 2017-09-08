@@ -130,7 +130,7 @@ double Planner::GetMaxAccel()
         double s_ego_next = s_ego + this->road.ego.v;
 
         double s_delta_next = s_lead_next - s_ego_next;
-        double s_available = s_delta_next - s_buffer;
+        double s_available = s_delta_next - this->s_buffer;
 
         g_max = min(g_max, s_available); // assuming 1 sec integration time
 

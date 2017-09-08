@@ -157,7 +157,8 @@ int main()
 					// cout << ego.state << "\t" << ego.lane << "\t" << ego.a << endl;
 
 					double lane_target = 2;
-					double v_car_target  = 40 * 1.6 / 3.6;
+					double v_car_target = v_car + planner.road.ego.g;
+					// double v_car_target  = 40 * 1.6 / 3.6;
 					// double v_car_target = v_car + planner.road.ego.g;
 
 					// cout << "#################################" << endl;

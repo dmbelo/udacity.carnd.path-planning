@@ -30,6 +30,8 @@ public:
 
     void Print();
 
+    static int GetLane(double d);
+
 private:
 
     vector<double> ego_vec;

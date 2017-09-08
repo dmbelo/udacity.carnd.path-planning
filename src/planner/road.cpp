@@ -15,17 +15,20 @@ void Road::Initialize()
 {
 
     int id = (int) this->ego_vec[0];
-    int lane = (int) this->ego_vec[1]; // TODO GetLane
+    double d = this->ego_vec[1];
     double s = this->ego_vec[2];
     double v = this->ego_vec[3];
     double g = this->ego_vec[4];
+
+    int lane = GetLane(d);
 
     this->ego = Vehicle(id, lane, s, v, g);
 
     for (auto &vehicle_vec : this->traffic_vec)
     {
         id = (int) vehicle_vec[0];
-        lane = (int) vehicle_vec[6]; // TODO GetLane
+        d = vehicle_vec[6]; // TODO GetLane
+        lane = GetLane(d);
         s = vehicle_vec[5];
         double vx = vehicle_vec[3];
         double vy = vehicle_vec[4];
@@ -68,5 +71,25 @@ void Road::Print()
     {
         vehicle.Print();
         cout << endl;
+    }
+}
+
+int Road::GetLane(double d)
+{
+    if ((d >= 0) & (d < 4))
+    { 
+        return 1;
+    }
+    else if ((d >= 4) & (d < 8))
+    {
+        return 2;
+    }
+    else if ((d >= 8) & (d < 12))
+    {
+        return 3;
+    }
+    else
+    {
+        return -1;
     }
 }
