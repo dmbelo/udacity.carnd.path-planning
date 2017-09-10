@@ -1,6 +1,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <vector>
 #include "trajectory_generator.h"
 
 using namespace std;
@@ -39,9 +40,9 @@ int main()
     TrajectoryGenerator traj(map_x, map_y, map_s);
 
     traj.SetHorizonDistance(90);
-    traj.SetTargetLane(0);
+    traj.SetTargetLane(1);
     traj.SetTargetSpeed(30);
-    traj.SetInitialPose(1059.0, 1169.0, 0 * 0.55);
+    traj.SetInitialPose(2190, 1950, 80 * M_PI / 180, -1.00);
     
     vector<double> x_trajectory;
     vector<double> y_trajectory;

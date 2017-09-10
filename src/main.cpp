@@ -185,6 +185,7 @@ int main()
 						}
 					}
 
+					cout << "Vehicle Heading (deg): " << a_yaw_car * 180 / M_PI << endl;
 					traj.SetInitialPose(x_car, y_car, a_yaw_car, s_car);
 					traj.SetTargetSpeed(v_car_target);
 					traj.SetTargetLane(lane_target);
