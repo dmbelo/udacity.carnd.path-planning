@@ -68,6 +68,8 @@ void Planner::UpdateState()
         ResetVotes();
     }
 
+    this->state = new_state;
+
     // if (this->state.compare("KL") == 0) // If we're in KL go to vote
     // {
     //     // Increment the vote count
@@ -203,6 +205,9 @@ double Planner::GetMaxAccel()
 
 double Planner::GetCollisionCost()
 {
+
+    // TODO Do a better job making sure there is room behind as well as in front
+    // TODO Do a better job of comparing if there will be a collision immeniantly or just in the future
 
     double cost = 0;
     double s_ego = this->road.ego.s;

@@ -18,7 +18,7 @@ public:
 
     vector<int> votes;
 
-    double v_target = 49 * 1.6 / 3.6;
+    double v_target = 48 * 1.6 / 3.6;
     
     double g_max = 2;
 
@@ -26,7 +26,7 @@ public:
 
     double s_collision = 5; // Distance b/w vehicle origins to trigger collision
 
-    int n_votes_threshold = 50;
+    int n_votes_threshold = 100;
 
     Planner();
 
