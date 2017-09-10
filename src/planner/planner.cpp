@@ -44,6 +44,8 @@ void Planner::UpdateState()
         }
     }
 
+    string new_state = states[idx_min_cost];
+
     if (this->state.compare("KL") == 0) // If we're in KL go to vote
     {
         // Increment the vote count
@@ -52,14 +54,38 @@ void Planner::UpdateState()
         // Check weather we've exceeded the threshold change state if so
         if (this->votes[idx_min_cost] > n_votes_threshold)
         {
-            this->state = states[idx_min_cost];
-            ResetVotes();
+            new_state = states[idx_min_cost];
+            // ResetVotes();
         }
     }
-    else
+    else 
     {
-        this->state = states[idx_min_cost];
+        new_state = states[idx_min_cost];
     }
+
+    if (new_state.compare(this->state) != 0) // If there is a state change request
+    {
+        ResetVotes();
+    }
+
+    // if (this->state.compare("KL") == 0) // If we're in KL go to vote
+    // {
+    //     // Increment the vote count
+    //     this->votes[idx_min_cost] += 1;
+
+    //     // Check weather we've exceeded the threshold change state if so
+    //     if (this->votes[idx_min_cost] > n_votes_threshold)
+    //     {
+    //         this->state = states[idx_min_cost];
+    //         ResetVotes();
+    //     }
+    // }
+    // else if ((suggested_state.compare("LCL") == 0) | (suggested_state.compare("LCR") == 0))
+    // {
+    //     ResetVotes(); // Reset votes so that we can't immediately change our mind again
+    // }
+
+    // this->state = states[idx_min_cost];
 
     RealizeState(this->state);    
 
@@ -130,7 +156,6 @@ double Planner::GetMaxAccel()
     double dt = 1; // TODO 
     double v_delta = this->v_target - this->road.ego.v;
     double g_max = v_delta; // assuming 1 sec integration time
-    // double g_max = min(this->g_max, v_delta); 
 
     double s_ego = this->road.ego.s;
     int l_ego = this->road.ego.l;
@@ -206,7 +231,7 @@ double Planner::GetChangeStateCost(string test_state)
     double cost = 0;
     if (test_state.compare(this->state) != 0)
     {
-        cost = 0.1;
+        cost = 0.5;
     }
     return cost;
 }
