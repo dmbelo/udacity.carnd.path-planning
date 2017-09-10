@@ -17,7 +17,7 @@ void Planner::UpdateState()
     for (string test_state : this->states)
     {
         RealizeState(test_state);
-        this->road.Simulate(1);
+        this->road.Simulate(5);
         double cost_collision = GetCollisionCost();
         double cost_target_speed = GetTargetSpeedCost();
         double cost_change_state = GetChangeStateCost(test_state);
@@ -129,7 +129,8 @@ double Planner::GetMaxAccel()
 {
     double dt = 1; // TODO 
     double v_delta = this->v_target - this->road.ego.v;
-    double g_max = min(this->g_max, v_delta); // assuming 1 sec integration time
+    double g_max = v_delta; // assuming 1 sec integration time
+    // double g_max = min(this->g_max, v_delta); 
 
     double s_ego = this->road.ego.s;
     int l_ego = this->road.ego.l;
@@ -167,6 +168,9 @@ double Planner::GetMaxAccel()
         g_max = min(g_max, s_available); // assuming 1 sec integration time
 
     }
+
+    g_max = max(-this->g_max, g_max);
+    g_max = min(this->g_max, g_max);
 
     return g_max;
 

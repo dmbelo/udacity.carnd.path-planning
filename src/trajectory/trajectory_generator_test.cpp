@@ -42,7 +42,7 @@ int main()
     traj.SetHorizonDistance(90);
     traj.SetTargetLane(1);
     traj.SetTargetSpeed(30);
-    traj.SetInitialPose(2190, 1950, 80 * M_PI / 180, -1.00);
+    traj.SetInitialPose(2190, 1950, 80 * M_PI / 180);
     
     vector<double> x_trajectory;
     vector<double> y_trajectory;

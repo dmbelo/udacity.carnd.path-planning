@@ -14,12 +14,11 @@ void TrajectoryGenerator::SetHorizonDistance(double x_horizon)
     this->x_horizon = x_horizon;
 }
 
-void TrajectoryGenerator::SetInitialPose(double x, double y, double theta, double s)
+void TrajectoryGenerator::SetInitialPose(double x, double y, double theta)
 {
     this->x0 = x;
     this->y0 = y;
     this->theta0 = theta;
-    this->s0 = s;
 }
 
 void TrajectoryGenerator::SetTargetSpeed(double target_speed)
@@ -69,15 +68,9 @@ void TrajectoryGenerator::Generate(vector<double> &x_trajectory, vector<double> 
     vector<double> sd0 = getFrenet(this->x0, this->y0, this->theta0, this->map_x, this->map_y);
 
     // Calculate the spline knots from the desired start of the spline
-    cout << "s0, x0, d0: " << this->s0 << ", " << this->x0 << ", " << this->y0 << endl;
-    vector<double> xy_car_3 = getXY(sd0[0] + 30, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
-    vector<double> xy_car_4 = getXY(sd0[0] + 60, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+    vector<double> xy_car_3 = getXY(sd0[0] + 45, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+    vector<double> xy_car_4 = getXY(sd0[0] + 80, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
     vector<double> xy_car_5 = getXY(sd0[0] + 90, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
-
-    // vector<double> xy_car_3 = getXY(sd0[0] + 30, 0, map_s, map_x, map_y);
-    // vector<double> xy_car_4 = getXY(sd0[0] + 60, 0, map_s, map_x, map_y);
-    // vector<double> xy_car_5 = getXY(sd0[0] + 90, 0, map_s, map_x, map_y);
-
 
     vector<double> x_spline;
     vector<double> y_spline;
@@ -93,12 +86,6 @@ void TrajectoryGenerator::Generate(vector<double> &x_trajectory, vector<double> 
     x_spline.push_back(xy_car_5[0]);
     y_spline.push_back(xy_car_5[1]);
 
-    cout << "Spline Anchot Pts (Global Csys)" << endl;
-    for (int i = 0; i < x_spline.size(); i++)
-    {
-        cout << x_spline[i] << ", " << y_spline[i] << endl;
-    }
-
     // Convert x,y_spline from world to vehicle reference frame
     for (int i = 0; i < x_spline.size(); i++)
     {
@@ -110,47 +97,15 @@ void TrajectoryGenerator::Generate(vector<double> &x_trajectory, vector<double> 
         y_spline[i] = new_y;
     }
 
-    cout << "Spline Anchot Pts (Local Csys)" << endl;
-    for (int i = 0; i < x_spline.size(); i++)
-    {
-        cout << x_spline[i] << ", " << y_spline[i] << endl;
-    }
-
-
     tk::spline s; // Spline object for interpolation
     s.set_points(x_spline, y_spline);
-
-    // double xi = 0;
-    // double yi = 0;
-    // double dt = 0.02;
-    // double dx = target_speed * dt;
-
-    // // Calculate how much of the trajectory horizon we've covered by the incomplete trajectory
-    // // By finding the distance between the current position of the vehicle and the start of the
-    // // trajectory and projecting that distance into the x-axis of the vehicle's csys
-    // double theta1 = atan2(y_start - this->y0, x_start - this->x0) - this->theta0;
-    // double x_horizon_start = distance(x_start, y_start, this->x0, this->y0) * cos(theta1);
-
-    // int n_knots = (this->x_horizon - x_horizon_start) / dx;
-    // for (int i = 0; i < n_knots; i++)
-    // {
-    //     // Calculate new x position in car csys
-    //     xi += dx;
-    //     yi = s(xi);
-    //     // Convert from vehicle to world reference frame and append
-    //     x_trajectory.push_back(xi * cos(theta_start) - yi * sin(theta_start) + x_start);
-    //     y_trajectory.push_back(xi * sin(theta_start) + yi * cos(theta_start) + y_start);
-    // }
 
     double target_x = 30.0;
     double target_y = s(target_x);
     double target_dist = sqrt(target_x * target_x + target_y * target_y);
 
-    cout << "target_x, target_y, target_dist:" << target_x << ", " << target_y << ", " << target_dist << endl; 
-
     double x_add_on = 0;
 
-    cout << "Number of previous points" << n_trajectory << endl;
     double N = target_dist / (0.02 * target_speed);
     for (int i = 1; i < 50 - n_trajectory; i++)
     {

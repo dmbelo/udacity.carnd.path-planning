@@ -94,7 +94,10 @@ int main()
 
 	Planner planner;
 
-	h.onMessage([&traj, &planner](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+	int counter = 0;
+	int lane_target = 2;
+
+	h.onMessage([&traj, &planner, &counter, &lane_target](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
 																											 uWS::OpCode opCode) {
 		// "42" at the start of the message means there's a websocket message event.
 		// The 4 signifies a websocket message
@@ -156,8 +159,26 @@ int main()
 					// cout << "State\tLane\tAccel" << endl;
 					// cout << ego.state << "\t" << ego.lane << "\t" << ego.a << endl;
 
-					double lane_target = planner.road.ego.l;
+					lane_target = planner.road.ego.l;
 					double v_car_target = v_car + planner.road.ego.g;
+					// double v_car_target = 49 * 1.6 / 3.6;
+
+					// if (counter > 100)
+					// {
+					// 	if (lane_target == 2)
+					// 	{
+					// 		lane_target = 3;
+					// 	}
+					// 	else
+					// 	{
+					// 		lane_target = 2;
+					// 	}
+					// 	counter = 0;
+					// }
+					// else
+					// {
+					// 	counter += 1;
+					// }
 
 					cout << "#################################" << endl;
 					cout << "Behavior Planning Commands" << endl;
@@ -185,8 +206,7 @@ int main()
 						}
 					}
 
-					cout << "Vehicle Heading (deg): " << a_yaw_car * 180 / M_PI << endl;
-					traj.SetInitialPose(x_car, y_car, a_yaw_car, s_car);
+					traj.SetInitialPose(x_car, y_car, a_yaw_car);
 					traj.SetTargetSpeed(v_car_target);
 					traj.SetTargetLane(lane_target);
 					traj.Generate(x_trajectory, y_trajectory);
