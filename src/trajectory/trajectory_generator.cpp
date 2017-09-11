@@ -68,8 +68,8 @@ void TrajectoryGenerator::Generate(vector<double> &x_trajectory, vector<double> 
     vector<double> sd0 = getFrenet(this->x0, this->y0, this->theta0, this->map_x, this->map_y);
 
     // Calculate the spline knots from the desired start of the spline
-    vector<double> xy_car_3 = getXY(sd0[0] + 45, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
-    vector<double> xy_car_4 = getXY(sd0[0] + 80, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+    vector<double> xy_car_3 = getXY(sd0[0] + 60, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
+    vector<double> xy_car_4 = getXY(sd0[0] + 75, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
     vector<double> xy_car_5 = getXY(sd0[0] + 90, 4 * (target_lane - 1) + 2, map_s, map_x, map_y);
 
     vector<double> x_spline;
