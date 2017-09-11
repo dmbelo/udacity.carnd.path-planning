@@ -44,31 +44,33 @@ void Planner::UpdateState()
         }
     }
 
-    string new_state = states[idx_min_cost];
+    this->votes[idx_min_cost] += 1;
 
-    if (this->state.compare("KL") == 0) // If we're in KL go to vote
+    string state_requested = states[idx_min_cost];
+    string state_arbitrated;
+
+    if (state_requested.compare(this->state) != 0) // If different to current state
     {
-        // Increment the vote count
-        this->votes[idx_min_cost] += 1;
-
-        // Check weather we've exceeded the threshold change state if so
-        if (this->votes[idx_min_cost] > n_votes_threshold)
+        if (this->state.compare("KL") == 0) // If currently in KL
         {
-            new_state = states[idx_min_cost];
-            // ResetVotes();
+            // Go to vote
+            if (this->votes[idx_min_cost] > this->n_votes_threshold)
+            {
+                state_arbitrated = state_requested;
+            }
         }
-    }
-    else 
-    {
-        new_state = states[idx_min_cost];
-    }
-
-    if (new_state.compare(this->state) != 0) // If there is a state change request
-    {
-        ResetVotes();
+        else
+        {
+            // Revert LCL/LCR to KL 
+            state_arbitrated = "KL"; 
+        }
+        this->state = state_arbitrated;
     }
 
-    this->state = new_state;
+    // string requested_state = states[idx_min_cost];
+    // string new_state;
+
+    // this->n_counter += 1;
 
     // if (this->state.compare("KL") == 0) // If we're in KL go to vote
     // {
@@ -78,16 +80,30 @@ void Planner::UpdateState()
     //     // Check weather we've exceeded the threshold change state if so
     //     if (this->votes[idx_min_cost] > n_votes_threshold)
     //     {
-    //         this->state = states[idx_min_cost];
-    //         ResetVotes();
+    //         new_state = requested_state;
     //     }
     // }
-    // else if ((suggested_state.compare("LCL") == 0) | (suggested_state.compare("LCR") == 0))
+    // else
     // {
-    //     ResetVotes(); // Reset votes so that we can't immediately change our mind again
+    //     new_state = "KL"; // If we're currently not in KL we go to KL
     // }
 
-    // this->state = states[idx_min_cost];
+
+
+    // else if (this->n_counter = this->n_lane_change_counter_threshold)
+    // // Make sure we don't switch lanes right after another lane change
+    // {
+    //     new_state = requested_state;
+    // }
+
+    // if (requested_state.compare(this->state) != 0) // If there is a state change request
+    // {
+    //     if ((new_state.compare("LCL") == 0) | (new_state.compare("LCR") == 0))
+    //     {
+    //         ResetCounter();
+    //     }
+    //     ResetVotes();
+    // }
 
     RealizeState(this->state);    
 
@@ -130,10 +146,6 @@ void Planner::RealizeState(string state)
 
 }
 
-// void RealizeConstantSpeed(){
-//     this->road.ego.a = 0;
-// }
-
 void Planner::RealizeKeepLane()
 {
     this->road.ego.g = GetMaxAccel();
@@ -152,10 +164,8 @@ void Planner::RealizeLaneChange(string direction)
     this->road.ego.g = GetMaxAccel();
 }
 
-
 double Planner::GetMaxAccel()
 {
-    double dt = 1; // TODO 
     double v_delta = this->v_target - this->road.ego.v;
     double g_max = v_delta; // assuming 1 sec integration time
 
