@@ -161,24 +161,6 @@ int main()
 
 					lane_target = planner.road.ego.l;
 					double v_car_target = v_car + planner.road.ego.g;
-					// double v_car_target = 49 * 1.6 / 3.6;
-
-					// if (counter > 100)
-					// {
-					// 	if (lane_target == 2)
-					// 	{
-					// 		lane_target = 3;
-					// 	}
-					// 	else
-					// 	{
-					// 		lane_target = 2;
-					// 	}
-					// 	counter = 0;
-					// }
-					// else
-					// {
-					// 	counter += 1;
-					// }
 
 					cout << "#################################" << endl;
 					cout << "Behavior Planning Commands" << endl;
@@ -195,11 +177,14 @@ int main()
 					vector<double> x_trajectory;
 					vector<double> y_trajectory;
 
+					// max value of points to be used from incomplete trajectory
+					int n_trajectory_unused_max = 1e3; 
 					int n_trajectory_incomplete = x_trajectory_incomplete.size();
+					int n_max = min(n_trajectory_incomplete, n_trajectory_unused_max);
 					if (n_trajectory_incomplete > 2)
 					{
 						// Copy over unused trajectory to new generated one
-						for (int i = 0; i < n_trajectory_incomplete; i++)
+						for (int i = 0; i < n_max; i++)
 						{
 							x_trajectory.push_back(x_trajectory_incomplete[i]);
 							y_trajectory.push_back(y_trajectory_incomplete[i]);

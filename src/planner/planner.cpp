@@ -12,12 +12,14 @@ void Planner::UpdateState()
 
     vector<double> cost_vec;
 
+    int lane_current = this->road.ego.l;
+
     cout << "TestState\tCollision\tTargetSpeet\tChangeState\tRoadBoundary\tTotal" << endl;
 
     for (string test_state : this->states)
     {
         RealizeState(test_state);
-        this->road.Simulate(5);
+        this->road.Simulate(2);
         double cost_collision = GetCollisionCost();
         double cost_target_speed = GetTargetSpeedCost();
         double cost_change_state = GetChangeStateCost(test_state);
@@ -25,6 +27,7 @@ void Planner::UpdateState()
         double cost = cost_collision + cost_target_speed + cost_change_state + cost_road_boundary;
         cost_vec.push_back(cost);
         this->road.Reset();
+        this->bIsLaneChange = false;
 
         cout << test_state << "\t\t"
              << setprecision(4) << cost_collision << "\t\t" << setprecision(4) << cost_target_speed << "\t\t" 
@@ -44,28 +47,86 @@ void Planner::UpdateState()
         }
     }
 
-    this->votes[idx_min_cost] += 1;
-
     string state_requested = states[idx_min_cost];
     string state_arbitrated;
 
-    if (state_requested.compare(this->state) != 0) // If different to current state
+    // State Machine
+
+    if (this->state.compare("KL") == 0) // State KL
     {
-        if (this->state.compare("KL") == 0) // If currently in KL
+        this->votes[idx_min_cost] += 1;
+        if (this->votes[idx_min_cost] > this->n_votes_threshold)
         {
-            // Go to vote
-            if (this->votes[idx_min_cost] > this->n_votes_threshold)
-            {
-                state_arbitrated = state_requested;
-            }
+            state_arbitrated = state_requested;
+            // if (state_arbitrated.compare("LCL") == 0)
+            // {
+            //     // this->bIsLaneChange = true;
+            //     // this->lane_target -= -1;
+            // }
+            // else if (state_arbitrated.compare("LCR") == 0)
+            // {
+            //     // this->lane_target += 1;
+            // }
+            // ResetVotes();
+            this->votes[idx_min_cost] = 0;
         }
-        else
+        else 
         {
-            // Revert LCL/LCR to KL 
-            state_arbitrated = "KL"; 
+            state_arbitrated = "KL";
         }
-        this->state = state_arbitrated;
     }
+    else  // State LCL/LCR
+    {
+        // Check weather lane change is done
+        if (!this->bIsLaneChange)
+        {
+            state_arbitrated = "KL";
+        }
+        else 
+        {
+            state_arbitrated = this->state;
+        }
+    }
+
+    this->state = state_arbitrated;
+    RealizeState(state_arbitrated);
+
+
+    // cout << "Votes: " << this->votes[0] << ", " << this->votes[1] << ", " << this->votes[2] << endl;
+
+    // if (this->state.compare("KL") == 0) // If currently in KL
+    // {
+    //     // Go to vote
+    //     if (this->votes[idx_min_cost] > this->n_votes_threshold)
+    //     {
+    //         state_arbitrated = state_requested;
+    //         ResetVotes();
+    //     }
+    //     else
+    //     {
+    //         state_arbitrated = "KL";
+    //     }
+         
+    // }
+    // else
+    // {
+    //     cout << "Current, Desired Lane: " << lane_current << ", " << lane_current << endl; 
+       
+    //     if (this->bIsLaneChange)
+    //     {
+    //         // Wait for LC if not done
+    //         state_arbitrated = state_requested; 
+    //     }
+    //     else
+    //     {
+    //         // Revert to KL if done with LC
+    //         state_arbitrated = "KL"; // Revert LCL/LCR to KL 
+    //     }
+
+    // }
+
+    // this->state = state_arbitrated;
+    // RealizeState(this->state); 
 
     // string requested_state = states[idx_min_cost];
     // string new_state;
@@ -105,7 +166,7 @@ void Planner::UpdateState()
     //     ResetVotes();
     // }
 
-    RealizeState(this->state);    
+    
 
 }
 
@@ -153,14 +214,44 @@ void Planner::RealizeKeepLane()
 
 void Planner::RealizeLaneChange(string direction)
 {
-    if (direction.compare("L") == 0)
+    if (!this->bIsLaneChange)
     {
-        this->road.ego.l -= 1;
-    } 
-    else
-    {
-        this->road.ego.l += 1;
+        if (direction.compare("L") == 0)
+        {
+            this->lane_target -= 1;
+            this->road.ego.l -= 1;  
+        }
+        else
+        {
+            this->lane_target += 1;
+            this->road.ego.l += 1;
+        }
     }
+    else if (this->lane_target != this->road.ego.l)
+    {
+        this->bIsLaneChange = false;
+    }
+    
+    // if (!this->bIsLaneChange)
+    // {
+    //     this->bIsLaneChange = true;
+    //     if (this->lane_target != this->road.ego.l)
+    //     {
+    //         if (direction.compare("L") == 0)
+    //         {
+    //             this->road.ego.l -= 1;  
+    //         }
+    //         else
+    //         {
+    //             this->road.ego.l += 1;
+    //         }
+    //     }
+    //     else
+    //     {
+    //         this->bIsLaneChange = false;
+    //     }
+    // }
+    
     this->road.ego.g = GetMaxAccel();
 }
 

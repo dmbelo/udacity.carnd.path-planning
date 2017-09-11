@@ -19,6 +19,10 @@ public:
     vector<int> votes;
 
     double v_target = 48 * 1.6 / 3.6;
+
+    int lane_target = 2;
+
+    int bIsLaneChange = false;
     
     double g_max = 2;
 
@@ -26,7 +30,7 @@ public:
 
     double s_collision = 5; // Distance b/w vehicle origins to trigger collision
 
-    int n_votes_threshold = 100;
+    int n_votes_threshold = 25;
 
     Planner();
 
