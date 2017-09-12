@@ -12,9 +12,9 @@ void Planner::UpdateState()
 
     vector<double> cost_vec;
 
-    int lane_current = this->road.ego.l;
-
     cout << "TestState\tCollision\tTargetSpeed\tChangeState\tRoadBoundary\tTotal" << endl;
+
+    bool bIsLaneChange_ = this->bIsLaneChange;
 
     for (string test_state : this->states)
     {
@@ -35,6 +35,8 @@ void Planner::UpdateState()
              << setprecision(4) << cost << endl;
 
     }
+
+    this->bIsLaneChange = bIsLaneChange_;
 
     double min_cost = 1e10;
     int idx_min_cost = 0;
@@ -66,9 +68,16 @@ void Planner::UpdateState()
     else  // State LCL/LCR
     {
         state_arbitrated = this->state;
-        if ((state_requested.compare(this->state) == 0) | (state_requested.compare("KL") == 0))
-        {   
-            state_arbitrated = state_requested;
+        // if ((state_requested.compare(this->state) == 0) | (state_requested.compare("KL") == 0))
+        // {   
+            // state_arbitrated = state_requested;
+        // }
+        cout << "Lane Target, Current Lane: " << this->lane_target << ", " << this->road.ego.l << endl;
+        cout << "bIsLaneChange? " << this->bIsLaneChange << endl;
+        if (!this->bIsLaneChange)
+        {
+            // If lane change is done revert to KL
+            state_arbitrated = "KL"; 
         }
     }
 
@@ -123,7 +132,7 @@ void Planner::RealizeLaneChange(string direction)
             this->road.ego.l += 1;
         }
     }
-    else if (this->lane_target != this->road.ego.l)
+    else if (this->lane_target == this->road.ego.l)
     {
         this->bIsLaneChange = false;
     }

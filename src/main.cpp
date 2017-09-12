@@ -159,7 +159,8 @@ int main()
 					// cout << "State\tLane\tAccel" << endl;
 					// cout << ego.state << "\t" << ego.lane << "\t" << ego.a << endl;
 
-					lane_target = planner.road.ego.l;
+					// lane_target = planner.road.ego.l;
+					lane_target = planner.lane_target;
 					double v_car_target = v_car + planner.road.ego.g;
 
 					cout << "#################################" << endl;
