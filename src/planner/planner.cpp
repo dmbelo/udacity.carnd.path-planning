@@ -14,12 +14,13 @@ void Planner::UpdateState()
 
     int lane_current = this->road.ego.l;
 
-    cout << "TestState\tCollision\tTargetSpeet\tChangeState\tRoadBoundary\tTotal" << endl;
+    cout << "TestState\tCollision\tTargetSpeed\tChangeState\tRoadBoundary\tTotal" << endl;
 
     for (string test_state : this->states)
     {
+        this->bIsLaneChange = false;
         RealizeState(test_state);
-        this->road.Simulate(2);
+        this->road.Simulate(5);
         double cost_collision = GetCollisionCost();
         double cost_target_speed = GetTargetSpeedCost();
         double cost_change_state = GetChangeStateCost(test_state);
@@ -27,7 +28,6 @@ void Planner::UpdateState()
         double cost = cost_collision + cost_target_speed + cost_change_state + cost_road_boundary;
         cost_vec.push_back(cost);
         this->road.Reset();
-        this->bIsLaneChange = false;
 
         cout << test_state << "\t\t"
              << setprecision(4) << cost_collision << "\t\t" << setprecision(4) << cost_target_speed << "\t\t" 
@@ -54,119 +54,26 @@ void Planner::UpdateState()
 
     if (this->state.compare("KL") == 0) // State KL
     {
+        state_arbitrated = "KL";
         this->votes[idx_min_cost] += 1;
+        cout << "Votes: " << this->votes[0] << ", " << this->votes[1] << ", " << this->votes[2] << endl;
         if (this->votes[idx_min_cost] > this->n_votes_threshold)
         {
+            ResetVotes();
             state_arbitrated = state_requested;
-            // if (state_arbitrated.compare("LCL") == 0)
-            // {
-            //     // this->bIsLaneChange = true;
-            //     // this->lane_target -= -1;
-            // }
-            // else if (state_arbitrated.compare("LCR") == 0)
-            // {
-            //     // this->lane_target += 1;
-            // }
-            // ResetVotes();
-            this->votes[idx_min_cost] = 0;
-        }
-        else 
-        {
-            state_arbitrated = "KL";
         }
     }
     else  // State LCL/LCR
     {
-        // Check weather lane change is done
-        if (!this->bIsLaneChange)
-        {
-            state_arbitrated = "KL";
-        }
-        else 
-        {
-            state_arbitrated = this->state;
+        state_arbitrated = this->state;
+        if ((state_requested.compare(this->state) == 0) | (state_requested.compare("KL") == 0))
+        {   
+            state_arbitrated = state_requested;
         }
     }
 
     this->state = state_arbitrated;
     RealizeState(state_arbitrated);
-
-
-    // cout << "Votes: " << this->votes[0] << ", " << this->votes[1] << ", " << this->votes[2] << endl;
-
-    // if (this->state.compare("KL") == 0) // If currently in KL
-    // {
-    //     // Go to vote
-    //     if (this->votes[idx_min_cost] > this->n_votes_threshold)
-    //     {
-    //         state_arbitrated = state_requested;
-    //         ResetVotes();
-    //     }
-    //     else
-    //     {
-    //         state_arbitrated = "KL";
-    //     }
-         
-    // }
-    // else
-    // {
-    //     cout << "Current, Desired Lane: " << lane_current << ", " << lane_current << endl; 
-       
-    //     if (this->bIsLaneChange)
-    //     {
-    //         // Wait for LC if not done
-    //         state_arbitrated = state_requested; 
-    //     }
-    //     else
-    //     {
-    //         // Revert to KL if done with LC
-    //         state_arbitrated = "KL"; // Revert LCL/LCR to KL 
-    //     }
-
-    // }
-
-    // this->state = state_arbitrated;
-    // RealizeState(this->state); 
-
-    // string requested_state = states[idx_min_cost];
-    // string new_state;
-
-    // this->n_counter += 1;
-
-    // if (this->state.compare("KL") == 0) // If we're in KL go to vote
-    // {
-    //     // Increment the vote count
-    //     this->votes[idx_min_cost] += 1;
-
-    //     // Check weather we've exceeded the threshold change state if so
-    //     if (this->votes[idx_min_cost] > n_votes_threshold)
-    //     {
-    //         new_state = requested_state;
-    //     }
-    // }
-    // else
-    // {
-    //     new_state = "KL"; // If we're currently not in KL we go to KL
-    // }
-
-
-
-    // else if (this->n_counter = this->n_lane_change_counter_threshold)
-    // // Make sure we don't switch lanes right after another lane change
-    // {
-    //     new_state = requested_state;
-    // }
-
-    // if (requested_state.compare(this->state) != 0) // If there is a state change request
-    // {
-    //     if ((new_state.compare("LCL") == 0) | (new_state.compare("LCR") == 0))
-    //     {
-    //         ResetCounter();
-    //     }
-    //     ResetVotes();
-    // }
-
-    
 
 }
 
@@ -180,10 +87,6 @@ void Planner::RealizeState(string state)
     // Given a state, realize it by adjusting acceleration and lane.
     // Note - lane changes happen instantaneously.
 
-    // if(state.compare("CS") == 0)
-    // {
-    // 	RealizeConstantSpeed();
-    // }
     if(state.compare("KL") == 0)
     {
     	RealizeKeepLane();
@@ -196,14 +99,6 @@ void Planner::RealizeState(string state)
     {
     	RealizeLaneChange("R");
     }
-    // else if(state.compare("PLCL") == 0)
-    // {
-    // 	RealizePrepLaneChange("L");
-    // }
-    // else if(state.compare("PLCR") == 0)
-    // {
-    // 	RealizePrepLaneChange("R");
-    // }
 
 }
 
@@ -216,6 +111,7 @@ void Planner::RealizeLaneChange(string direction)
 {
     if (!this->bIsLaneChange)
     {
+        this->bIsLaneChange = true;
         if (direction.compare("L") == 0)
         {
             this->lane_target -= 1;
@@ -231,26 +127,6 @@ void Planner::RealizeLaneChange(string direction)
     {
         this->bIsLaneChange = false;
     }
-    
-    // if (!this->bIsLaneChange)
-    // {
-    //     this->bIsLaneChange = true;
-    //     if (this->lane_target != this->road.ego.l)
-    //     {
-    //         if (direction.compare("L") == 0)
-    //         {
-    //             this->road.ego.l -= 1;  
-    //         }
-    //         else
-    //         {
-    //             this->road.ego.l += 1;
-    //         }
-    //     }
-    //     else
-    //     {
-    //         this->bIsLaneChange = false;
-    //     }
-    // }
     
     this->road.ego.g = GetMaxAccel();
 }
@@ -297,8 +173,17 @@ double Planner::GetMaxAccel()
 
     }
 
-    g_max = max(-this->g_max, g_max);
-    g_max = min(this->g_max, g_max);
+    // Limit accel if changing lane
+    if (this->bIsLaneChange)
+    {
+        g_max = max(-this->g_max * 0.2, g_max);
+        g_max = min(this->g_max * 0.2, g_max);
+    }
+    else
+    {
+        g_max = max(-this->g_max, g_max);
+        g_max = min(this->g_max, g_max);
+    }
 
     return g_max;
 
@@ -337,7 +222,16 @@ double Planner::GetChangeStateCost(string test_state)
     double cost = 0;
     if (test_state.compare(this->state) != 0)
     {
-        cost = 0.5;
+        if (abs(this->road.ego.g) > 0.85 * this->g_max)
+        {
+            cout << "g = " << this->road.ego.g << endl;
+            cost = 100;
+        }
+        else
+        {
+            cost = 0.5;
+        }
+        
     }
     return cost;
 }

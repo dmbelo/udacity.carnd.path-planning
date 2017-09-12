@@ -24,13 +24,13 @@ public:
 
     int bIsLaneChange = false;
     
-    double g_max = 2;
+    double g_max = 1.8;
 
-    double s_buffer = 20;
+    double s_buffer = 30;
 
-    double s_collision = 5; // Distance b/w vehicle origins to trigger collision
+    double s_collision = 15; // Distance b/w vehicle origins to trigger collision
 
-    int n_votes_threshold = 25;
+    int n_votes_threshold = 20;
 
     Planner();
 

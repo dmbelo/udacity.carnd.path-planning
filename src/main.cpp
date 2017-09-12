@@ -178,10 +178,14 @@ int main()
 					vector<double> y_trajectory;
 
 					// max value of points to be used from incomplete trajectory
-					int n_trajectory_unused_max = 1e3; 
+					int n_trajectory_unused_max = 15; 
 					int n_trajectory_incomplete = x_trajectory_incomplete.size();
 					int n_max = min(n_trajectory_incomplete, n_trajectory_unused_max);
-					if (n_trajectory_incomplete > 2)
+					
+					// If we have a max decel request don't recycle unused points to 
+					// improve braking distance
+					// if ((n_trajectory_incomplete > 2) & (planner.road.ego.g != -2))
+					if (n_trajectory_incomplete > 2) 
 					{
 						// Copy over unused trajectory to new generated one
 						for (int i = 0; i < n_max; i++)
