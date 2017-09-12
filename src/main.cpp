@@ -76,22 +76,6 @@ int main()
 	TrajectoryGenerator traj(map_waypoints_x, map_waypoints_y, map_waypoints_s);
 	traj.SetHorizonDistance(30);
 
-	// Vehicle initial states
-	// int lane0 = 2;
-	// int s0 = 0;
-	// int v0 = 0;
-	// int g0 = 0;
-	// Vehicle ego(lane0, s0, v0, g0);	
-
-	// Vehicle configuration
-	// int v_limit = 50 * 1.6 / 3.6;
-	// int n_lanes = 3;
-	// int s_goal = 1000; // Distance to maintain target lane 
-	// int lane_goal = 2;
-	// int g_max = 2;
-
-	// vector<int> config = {v_limit, n_lanes, s_goal, lane_goal, g_max};
-
 	Planner planner;
 
 	int counter = 0;
@@ -134,6 +118,7 @@ int main()
 					// Previous path data given to the Planner
 					auto x_trajectory_incomplete = j[1]["previous_path_x"];
 					auto y_trajectory_incomplete = j[1]["previous_path_y"];
+					
 					// Previous path's end s and d values
 					double s_end_trajectory_incomplete = j[1]["end_path_s"];
 					double d_end_trajectory_incomplete = j[1]["end_path_d"];
@@ -153,27 +138,9 @@ int main()
 					 * Trajectory Generation
 					 */
 
-					// int lane_target = ego.lane;
-					// int g_target = ego.a;
-
-					// cout << "State\tLane\tAccel" << endl;
-					// cout << ego.state << "\t" << ego.lane << "\t" << ego.a << endl;
-
-					// lane_target = planner.road.ego.l;
 					lane_target = planner.lane_target;
 					double v_car_target = v_car + planner.road.ego.g;
 
-					cout << "#################################" << endl;
-					cout << "Behavior Planning Commands" << endl;
-					cout << "State:\t" << planner.state << endl;
-					cout << "Accel:\t" << planner.road.ego.g << endl;
-					cout << "Vel:\t" << v_car_target << endl;
-					cout << "Lane:\t" << lane_target << endl; 
-					cout << "#################################" << endl;
-
-					// cout << "#################################" << endl;
-					// cout << "Trajectory Generation" << endl;
-					// cout << "#################################" << endl;
 					// trajectory vector to be generated
 					vector<double> x_trajectory;
 					vector<double> y_trajectory;
@@ -183,9 +150,6 @@ int main()
 					int n_trajectory_incomplete = x_trajectory_incomplete.size();
 					int n_max = min(n_trajectory_incomplete, n_trajectory_unused_max);
 					
-					// If we have a max decel request don't recycle unused points to 
-					// improve braking distance
-					// if ((n_trajectory_incomplete > 2) & (planner.road.ego.g != -2))
 					if (n_trajectory_incomplete > 2) 
 					{
 						// Copy over unused trajectory to new generated one
