@@ -26,11 +26,11 @@ class TrajectoryGenerator
         vector<double> map_x;
         vector<double> map_y;
         vector<double> map_s;
-        double target_speed;
-        int target_lane;
+        double target_speed;   // m/s
+        int target_lane;       
         double x_horizon;      // Trajectory horizon distance in vehicle csys
-        double x0;             // Current vehicle x in world csys
-        double y0;             // Current vehicle y in world csys
-        double theta0;         // Current vehicle theta
+        double x0;             // Current vehicle x in world csys (m)
+        double y0;             // Current vehicle y in world csys (m)
+        double theta0;         // Current vehicle theta (rad)
 
 };

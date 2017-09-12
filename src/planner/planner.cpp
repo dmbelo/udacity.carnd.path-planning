@@ -14,11 +14,11 @@ void Planner::UpdateState()
 
     cout << "TestState\tCollision\tTargetSpeed\tChangeState\tRoadBoundary\tTotal" << endl;
 
-    bool bIsLaneChange_ = this->bIsLaneChange;
+    bool bIsLaneChange_ = this->bIsLaneChange; // Store the original state of bIsLaneChange to revert later
 
     for (string test_state : this->states)
     {
-        this->bIsLaneChange = false;
+        this->bIsLaneChange = false; // Manually set the bIsLaneChange flag for ea test scenario
         RealizeState(test_state);
         double cost_collision0 = GetCollisionCost();
         this->road.Simulate(5);
@@ -28,7 +28,7 @@ void Planner::UpdateState()
         double cost_road_boundary = GetRoadBoundaryCost();
         double cost = cost_collision0 + cost_collision + cost_target_speed + cost_change_state + cost_road_boundary;
         cost_vec.push_back(cost);
-        this->road.Reset();
+        this->road.Reset(); // Reset vehicle back to default for next test_state
 
         cout << test_state << "\t\t"
              << setprecision(4) << cost_collision0 + cost_collision << "\t\t" << setprecision(4) << cost_target_speed << "\t\t" 
@@ -37,8 +37,9 @@ void Planner::UpdateState()
 
     }
 
-    this->bIsLaneChange = bIsLaneChange_;
-
+    this->bIsLaneChange = bIsLaneChange_; // Revert back to default bIsLaneChange flag TODO handle this in a better manner 
+    
+    // Find the state that minimizes the cost
     double min_cost = 1e10;
     int idx_min_cost = 0;
     for (int i = 0; i < this->n_states; i++)
@@ -50,17 +51,17 @@ void Planner::UpdateState()
         }
     }
 
-    string state_requested = states[idx_min_cost];
-    string state_arbitrated;
+    string state_requested = states[idx_min_cost]; // the state that minimzizes the cost function
+    string state_arbitrated; // the state that is arbitrated by the state machine
 
     // State Machine
-
     if (this->state.compare("KL") == 0) // State KL
     {
         state_arbitrated = "KL";
         this->votes[idx_min_cost] += 1;
         if ((state_requested.compare("KL") != 0) & (this->votes[idx_min_cost] > this->n_votes_threshold))
         {
+            // If we have enough votes, reset votes and accept the requested state
             ResetVotes();
             state_arbitrated = state_requested;
         }
@@ -70,7 +71,7 @@ void Planner::UpdateState()
         state_arbitrated = this->state;
         if (!this->bIsLaneChange)
         {
-            // If lane change is done revert to KL
+            // If lane change is complete revert to KL immediately
             state_arbitrated = "KL"; 
         }
     }

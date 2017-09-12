@@ -100,7 +100,7 @@ void TrajectoryGenerator::Generate(vector<double> &x_trajectory, vector<double> 
     tk::spline s; // Spline object for interpolation
     s.set_points(x_spline, y_spline);
 
-    double target_x = 30.0;
+    double target_x = this->x_horizon;
     double target_y = s(target_x);
     double target_dist = sqrt(target_x * target_x + target_y * target_y);
 

@@ -18,19 +18,19 @@ public:
 
     vector<int> votes;
 
-    double v_target = 48 * 1.6 / 3.6;
+    double v_target = 48 * 1.6 / 3.6; // m/s
 
     int lane_target = 2;
 
-    int bIsLaneChange = false;
+    int bIsLaneChange = false; // Is lane change in progress?
     
-    double g_max = 1.8;
+    double g_max = 1.8; // Max nominal acceleration (+ve/-ve)
 
-    double s_buffer = 30;
+    double s_buffer = 30; // Distance to keep to following vehicle
 
     double s_collision = 15; // Distance b/w vehicle origins to trigger collision
 
-    int n_votes_threshold = 40;
+    int n_votes_threshold = 40; // Number of votes before transition to LCL/LCR from KL
 
     Planner();
 
@@ -42,13 +42,9 @@ public:
 
     void RealizeState(string state);
 
-    // void RealizeConstantSpeed();
-
     void RealizeKeepLane();
 
     void RealizeLaneChange(string direction);
-
-    // void RealizePrepLaneChange(string flag);
     
     double GetMaxAccel();
 
@@ -62,7 +58,6 @@ public:
 
 private:
 
-    // vector<string> states = {"KL", "LCL", "LCR", "PLCL", "PLCR"};
     vector<string> states = {"KL", "LCL", "LCR"};
 
     int n_states = 3;

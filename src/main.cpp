@@ -79,9 +79,8 @@ int main()
 	Planner planner;
 
 	int counter = 0;
-	int lane_target = 2;
 
-	h.onMessage([&traj, &planner, &counter, &lane_target](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+	h.onMessage([&traj, &planner, &counter](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
 																											 uWS::OpCode opCode) {
 		// "42" at the start of the message means there's a websocket message event.
 		// The 4 signifies a websocket message
@@ -111,7 +110,7 @@ int main()
 					double a_yaw_car = j[1]["yaw"]; // rad?
 					double v_car = j[1]["speed"];   // mph
 
-					// Unit convert
+					// Unit convert to SI
 					v_car = v_car * 1.6 / 3.6; // m/s
 					a_yaw_car = a_yaw_car * M_PI / 180.0; // rad
 
@@ -130,22 +129,26 @@ int main()
 					 * Behavior Planning
 					 */
 
+					// Update the planner object with the latest pose and sensor fusion data
+					// and run the planner 
 					vector<double> ego_vec = {0, d_car, s_car, v_car, 0.0};
 					planner.road.Populate(ego_vec, sensor_fusion);
 					planner.UpdateState();
+
+					// retrieve target lane and speed for trajectory generator
+					int lane_target = planner.lane_target;
+					double v_car_target = v_car + planner.road.ego.g;
 					
 					/*
 					 * Trajectory Generation
 					 */
 
-					lane_target = planner.lane_target;
-					double v_car_target = v_car + planner.road.ego.g;
-
-					// trajectory vector to be generated
+					// Instantiate trajectory vector to be generated
 					vector<double> x_trajectory;
 					vector<double> y_trajectory;
 
-					// max value of points to be used from incomplete trajectory
+					// Limit the number of samples to recycle from the incomplete trajectory 
+					// of the previous cycle
 					int n_trajectory_unused_max = 15; 
 					int n_trajectory_incomplete = x_trajectory_incomplete.size();
 					int n_max = min(n_trajectory_incomplete, n_trajectory_unused_max);
@@ -160,6 +163,7 @@ int main()
 						}
 					}
 
+					// Update the vehicle pose and targets to inform the trajectory generation
 					traj.SetInitialPose(x_car, y_car, a_yaw_car);
 					traj.SetTargetSpeed(v_car_target);
 					traj.SetTargetLane(lane_target);
