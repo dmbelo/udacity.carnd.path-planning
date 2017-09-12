@@ -30,7 +30,7 @@ public:
 
     double s_collision = 15; // Distance b/w vehicle origins to trigger collision
 
-    int n_votes_threshold = 20;
+    int n_votes_threshold = 40;
 
     Planner();
 

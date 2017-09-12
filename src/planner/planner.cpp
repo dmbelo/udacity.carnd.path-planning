@@ -20,17 +20,18 @@ void Planner::UpdateState()
     {
         this->bIsLaneChange = false;
         RealizeState(test_state);
+        double cost_collision0 = GetCollisionCost();
         this->road.Simulate(5);
         double cost_collision = GetCollisionCost();
         double cost_target_speed = GetTargetSpeedCost();
         double cost_change_state = GetChangeStateCost(test_state);
         double cost_road_boundary = GetRoadBoundaryCost();
-        double cost = cost_collision + cost_target_speed + cost_change_state + cost_road_boundary;
+        double cost = cost_collision0 + cost_collision + cost_target_speed + cost_change_state + cost_road_boundary;
         cost_vec.push_back(cost);
         this->road.Reset();
 
         cout << test_state << "\t\t"
-             << setprecision(4) << cost_collision << "\t\t" << setprecision(4) << cost_target_speed << "\t\t" 
+             << setprecision(4) << cost_collision0 + cost_collision << "\t\t" << setprecision(4) << cost_target_speed << "\t\t" 
              << setprecision(4) << cost_change_state << "\t\t" << setprecision(4) << cost_road_boundary << "\t\t" 
              << setprecision(4) << cost << endl;
 
@@ -58,8 +59,7 @@ void Planner::UpdateState()
     {
         state_arbitrated = "KL";
         this->votes[idx_min_cost] += 1;
-        cout << "Votes: " << this->votes[0] << ", " << this->votes[1] << ", " << this->votes[2] << endl;
-        if (this->votes[idx_min_cost] > this->n_votes_threshold)
+        if ((state_requested.compare("KL") != 0) & (this->votes[idx_min_cost] > this->n_votes_threshold))
         {
             ResetVotes();
             state_arbitrated = state_requested;
@@ -68,12 +68,6 @@ void Planner::UpdateState()
     else  // State LCL/LCR
     {
         state_arbitrated = this->state;
-        // if ((state_requested.compare(this->state) == 0) | (state_requested.compare("KL") == 0))
-        // {   
-            // state_arbitrated = state_requested;
-        // }
-        cout << "Lane Target, Current Lane: " << this->lane_target << ", " << this->road.ego.l << endl;
-        cout << "bIsLaneChange? " << this->bIsLaneChange << endl;
         if (!this->bIsLaneChange)
         {
             // If lane change is done revert to KL
